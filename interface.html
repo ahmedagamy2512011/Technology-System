@@ -962,9 +962,47 @@ body {
       },
 
       // إرسال إشعار تليجرام عبر webhook (هيتضاف لاحقاً)
-      async sendTelegramNotif(phone, message) {
-        // placeholder — هيتفعّل بعد ربط التليجرام
-        console.log('📲 Telegram notif:', phone, message);
+      // إرسال رسالة تليجرام برقم الهاتف كـ chat_id
+      // المواطن محتاج يبدأ محادثة مع البوت أولاً
+      async sendTelegramNotif(chatId, message) {
+        if (!chatId) { console.warn('No chat ID'); return; }
+        const BOT_TOKEN = '8358958787:AAGSCUzt8pIihu06Txh_Dmpiq7Da7rMXCPA';
+        try {
+          const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: chatId,
+              text: message,
+              parse_mode: 'HTML'
+            })
+          });
+          const data = await res.json();
+          if (data.ok) {
+            console.log('✅ Telegram sent to:', chatId);
+          } else {
+            console.warn('❌ Telegram error:', data.description);
+          }
+          return data;
+        } catch(e) {
+          console.warn('Telegram fetch error:', e);
+        }
+      },
+
+      // حفظ Chat ID للمواطن (برقمه القومي أو رقم الطلب)
+      async saveCitizenChatId(requestId, chatId) {
+        try {
+          await setDoc(doc(db, 'citizens', requestId), { chatId, updatedAt: new Date().toISOString() });
+          console.log('✅ Chat ID saved for:', requestId);
+        } catch(e) { console.warn('saveCitizenChatId error:', e); }
+      },
+
+      // جلب Chat ID للمواطن
+      async getCitizenChatId(requestId) {
+        try {
+          const snap = await getDoc(doc(db, 'citizens', requestId));
+          return snap.exists() ? snap.data().chatId : null;
+        } catch(e) { return null; }
       }
     };
 
@@ -1481,6 +1519,11 @@ body {
       <div class="field">
         <label>رقم الهاتف *</label>
         <input class="field-input" id="new-phone" placeholder="01XXXXXXXXX" dir="ltr" maxlength="11" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>معرف تليجرام <span style="font-size:11px;color:var(--muted)">(اختياري — للإشعارات الفورية)</span></label>
+        <input class="field-input" id="new-telegram-id" placeholder="مثال: 92771786" dir="ltr" inputmode="numeric">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">📲 المواطن يحصل عليه بإرسال /start للبوت: @AlWadiSmart_bot</div>
       </div>
       <div class="field" style="grid-column:1/-1">
         <label>العنوان</label>
@@ -4539,6 +4582,11 @@ function advanceRequest(id) {
       DB.addNotif({ icon:'👤', type:'info', title:'إشعار للمواطن — '+id, msg:r.name+': يرجى التوجه للمركز التكنولوجي لتقديم أصول المستندات' });
     }
     const notifMsg = notifText;
+
+    // إرسال تليجرام للمواطن
+    if (window.FirebaseDB && r.telegramChatId) {
+      window.FirebaseDB.sendTelegramNotif(r.telegramChatId, notifText);
+    }
     DB.addNotif({ icon:'📲', type:'info', title:`إشعار مُرسل — ${id}`, msg:`${r.name} — ${STATUS_NEXT_LABEL[r.status]||'منجز'}` });
     DB.addNotif({ icon:'▶️', type:'info', title:`تقدّم ${id}`, msg:`انتقل إلى: ${STATUS_NEXT_LABEL[r.status]||'منجز'}${assignedEmp !== currentEmployee ? ' → '+assignedEmp : ''}` });
 
@@ -5195,11 +5243,14 @@ function saveNewRequest() {
   const now = new Date().toISOString();
   const status = missingDocs.length > 0 ? 'incomplete' : 'new';
 
+  const telegramChatId = document.getElementById('new-telegram-id') ? document.getElementById('new-telegram-id').value.trim() : '';
+
   DB.save({ id, name, nid, phone, address, service, center, details,
     docs: uploadedDocNames,
     docsFull: uploadedDocsFull,
     missingDocs,
     status,
+    telegramChatId,
     createdAt:now, updatedAt:now,
     steps:[{s:'received',t:now,by:currentEmployee},{s:'ai_check',t:new Date(Date.now()+1000).toISOString(),by:'النظام'}]
   });
@@ -5210,6 +5261,11 @@ function saveNewRequest() {
   const registrationNotif = missingDocs.length
     ? `⚠️ تم استلام طلبك — ${id}\n\nالخدمة: ${service}\nالمركز: ${center}\n\nرقم طلبك: ${id}\n\nتنبيه: توجد مستندات ناقصة:\n${missingDocs.map(d=>'• '+d).join('\n')}\n\nيرجى استكمال المستندات لمتابعة طلبك.`
     : `✅ تم تسجيل طلبك بنجاح — ${id}\n\nالخدمة: ${service}\nالمركز: ${center}\n\nرقم طلبك للمتابعة:\n${id}\n\nسيتم إشعارك عند كل تحديث 🏛️`;
+
+  // إرسال تليجرام للمواطن فور التسجيل
+  if (window.FirebaseDB && telegramChatId) {
+    window.FirebaseDB.sendTelegramNotif(telegramChatId, registrationNotif);
+  }
 
   // عرض إشعار التسجيل
   setTimeout(() => {
