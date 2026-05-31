@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بوابة المواطن — محافظة الوادي الجديد</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #1a6b3c;
+    --green-light: #2d9c5a;
+    --green-pale: #e8f5ee;
+    --gold: #c8a84b;
+    --dark: #0f2318;
+    --gray: #6b7280;
+    --border: #d1d5db;
+    --white: #ffffff;
+    --red: #dc2626;
+    --blue: #1d4ed8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Cairo', sans-serif;
+    background: #f0f4f1;
+    min-height: 100vh;
+    color: var(--dark);
+  }
+
+  /* HEADER */
+  .header {
+    background: linear-gradient(135deg, var(--dark) 0%, var(--green) 100%);
+    padding: 20px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(200,168,75,0.1) 0%, transparent 60%);
+  }
+  .header-logo {
+    width: 70px;
+    height: 70px;
+    background: var(--gold);
+    border-radius: 50%;
+    margin: 0 auto 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    position: relative;
+  }
+  .header h1 {
+    color: var(--white);
+    font-size: 20px;
+    font-weight: 900;
+    margin-bottom: 4px;
+  }
+  .header p {
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    background: var(--white);
+    border-bottom: 2px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .tab {
+    flex: 1;
+    padding: 14px 8px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s;
+    color: var(--gray);
+    font-family: 'Cairo', sans-serif;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+  .tab.active {
+    color: var(--green);
+    border-bottom-color: var(--green);
+    background: var(--green-pale);
+  }
+
+  /* CONTAINER */
+  .container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px 16px;
+  }
+
+  /* SECTIONS */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* CARD */
+  .card {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.04);
+  }
+  .card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--green);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--green-pale);
+  }
+
+  /* FORM ELEMENTS */
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--dark);
+    margin-bottom: 6px;
+  }
+  .field label span { color: var(--red); }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 14px;
+    color: var(--dark);
+    background: #fafafa;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--green);
+    background: var(--white);
+  }
+  .field textarea { resize: vertical; min-height: 80px; }
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* ID UPLOAD */
+  .id-upload {
+    border: 2px dashed var(--green-light);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    background: var(--green-pale);
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+  }
+  .id-upload:hover { border-color: var(--green); background: #d4edde; }
+  .id-upload input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .id-upload-icon { font-size: 40px; margin-bottom: 8px; }
+  .id-upload p { font-size: 14px; font-weight: 600; color: var(--green); }
+  .id-upload small { font-size: 12px; color: var(--gray); }
+  .id-preview {
+    margin-top: 12px;
+    display: none;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .id-preview img { width: 100%; max-height: 180px; object-fit: cover; }
+
+  /* AI EXTRACT BUTTON */
+  .btn-ai {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    transition: all 0.3s;
+  }
+  .btn-ai:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(124,58,237,0.3); }
+  .btn-ai:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  /* DOCS LIST */
+  .docs-list { list-style: none; }
+  .doc-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    background: var(--green-pale);
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--dark);
+  }
+  .doc-item::before { content: '📎'; font-size: 16px; }
+
+  /* BUTTONS */
+  .btn-primary {
+    width: 100%;
+    padding: 16px;
+    background: var(--green);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 8px;
+  }
+  .btn-primary:hover { background: var(--green-light); transform: translateY(-2px); }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  /* STATUS PAGE */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .status-new { background: #dbeafe; color: #1d4ed8; }
+  .status-review { background: #fef3c7; color: #92400e; }
+  .status-done { background: #d1fae5; color: #065f46; }
+  .status-returned { background: #fee2e2; color: #991b1b; }
+  .status-approved { background: #d1fae5; color: #065f46; }
+
+  /* TIMELINE */
+  .timeline { position: relative; padding-right: 24px; }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    right: 8px;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    background: var(--border);
+  }
+  .tl-item {
+    position: relative;
+    padding-bottom: 20px;
+  }
+  .tl-item::before {
+    content: '';
+    position: absolute;
+    right: -20px;
+    top: 6px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--green);
+    border: 2px solid white;
+    box-shadow: 0 0 0 2px var(--green);
+  }
+  .tl-item.done::before { background: var(--green); }
+  .tl-item.current::before { background: var(--gold); box-shadow: 0 0 0 2px var(--gold); }
+  .tl-item.pending::before { background: var(--border); box-shadow: 0 0 0 2px var(--border); }
+  .tl-title { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+  .tl-desc { font-size: 12px; color: var(--gray); }
+
+  /* UPLOAD DOC */
+  .doc-upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s;
+  }
+  .doc-upload-area:hover { border-color: var(--green); background: var(--green-pale); }
+  .doc-upload-area input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--dark);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: transform 0.3s;
+    z-index: 1000;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { background: var(--green); }
+  .toast.error { background: var(--red); }
+
+  /* LOADING */
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* SUCCESS STATE */
+  .success-card {
+    text-align: center;
+    padding: 32px 20px;
+  }
+  .success-icon { font-size: 60px; margin-bottom: 16px; }
+  .success-id {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--green);
+    background: var(--green-pale);
+    padding: 12px 24px;
+    border-radius: 12px;
+    display: inline-block;
+    margin: 12px 0;
+    letter-spacing: 2px;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--green-pale);
+    font-size: 13px;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-row span:first-child { color: var(--gray); }
+  .info-row span:last-child { font-weight: 600; }
+
+  .required-docs { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 12px; margin-top: 12px; }
+  .required-docs p { font-size: 12px; font-weight: 700; color: #c2410c; margin-bottom: 8px; }
+  .required-docs ul { list-style: none; }
+  .required-docs li { font-size: 12px; color: var(--dark); padding: 3px 0; }
+  .required-docs li::before { content: '• '; color: #f97316; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">🏛️</div>
+  <h1>بوابة المواطن الرقمية</h1>
+  <p>ديوان عام محافظة الوادي الجديد</p>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('form')">📝 تقديم طلب</button>
+  <button class="tab" onclick="showTab('status')">🔍 متابعة الطلب</button>
+</div>
+
+<div class="container">
+
+  <!-- FORM SECTION -->
+  <div id="section-form" class="section active">
+
+    <!-- ID UPLOAD -->
+    <div class="card">
+      <div class="card-title">🪪 رفع صورة البطاقة (اختياري)</div>
+      <div class="id-upload" onclick="document.getElementById('id-file').click()">
+        <input type="file" id="id-file" accept="image/*" onchange="handleIdUpload(event)">
+        <div class="id-upload-icon">📷</div>
+        <p>ارفع صورة بطاقة الرقم القومي</p>
+        <small>سيتم استخراج البيانات تلقائياً بالذكاء الاصطناعي</small>
+      </div>
+      <div class="id-preview" id="id-preview">
+        <img id="id-img" src="" alt="البطاقة">
+      </div>
+      <button class="btn-ai" id="btn-extract" onclick="extractFromId()" style="margin-top:12px;display:none">
+        <span>✨</span> استخراج البيانات بالذكاء الاصطناعي
+      </button>
+    </div>
+
+    <!-- PERSONAL INFO -->
+    <div class="card">
+      <div class="card-title">👤 البيانات الشخصية</div>
+      <div class="field">
+        <label>الاسم الرباعي <span>*</span></label>
+        <input type="text" id="f-name" placeholder="محمد أحمد علي حسن">
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label>الرقم القومي <span>*</span></label>
+          <input type="text" id="f-nid" placeholder="14 رقماً" maxlength="14" dir="ltr">
+        </div>
+        <div class="field">
+          <label>رقم الهاتف <span>*</span></label>
+          <input type="text" id="f-phone" placeholder="01XXXXXXXXX" maxlength="11" dir="ltr">
+        </div>
+      </div>
+      <div class="field">
+        <label>العنوان</label>
+        <input type="text" id="f-address" placeholder="المحافظة / المركز / الشارع">
+      </div>
+    </div>
+
+    <!-- SERVICE INFO -->
+    <div class="card">
+      <div class="card-title">📋 بيانات الطلب</div>
+      <div class="field-grid">
+        <div class="field">
+          <label>المركز التكنولوجي <span>*</span></label>
+          <select id="f-center">
+            <option value="">اختر المركز</option>
+            <option>الخارجة</option>
+            <option>باريس</option>
+            <option>الداخلة</option>
+            <option>بلاط</option>
+            <option>الفرافرة</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>نوع الخدمة <span>*</span></label>
+          <select id="f-service" onchange="updateDocs()">
+            <option value="">اختر الخدمة</option>
+            <option>توصيل مرافق</option>
+            <option>ترخيص بناء</option>
+            <option>دعم زراعي</option>
+            <option>شكوى / بلاغ</option>
+            <option>شهادة / وثيقة</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>تفاصيل الطلب</label>
+        <textarea id="f-details" placeholder="اشرح طلبك بإيجاز..."></textarea>
+      </div>
+      <div id="docs-required" style="display:none" class="required-docs">
+        <p>📎 المستندات المطلوبة لهذه الخدمة:</p>
+        <ul id="docs-list"></ul>
+      </div>
+    </div>
+
+    <!-- SUBMIT -->
+    <button class="btn-primary" id="btn-submit" onclick="submitRequest()">
+      ✅ تقديم الطلب
+    </button>
+
+    <!-- SUCCESS -->
+    <div id="submit-success" class="card" style="display:none">
+      <div class="success-card">
+        <div class="success-icon">🎉</div>
+        <p style="font-size:16px;font-weight:700;margin-bottom:8px">تم تقديم طلبك بنجاح!</p>
+        <p style="font-size:13px;color:var(--gray);margin-bottom:12px">رقم طلبك للمتابعة:</p>
+        <div class="success-id" id="success-id-display"></div>
+        <p style="font-size:12px;color:var(--gray);margin-top:12px">احتفظ بهذا الرقم — يمكنك متابعة طلبك من تبويب "متابعة الطلب"</p>
+        <button class="btn-primary" style="margin-top:16px" onclick="goToStatus()">
+          🔍 متابعة حالة طلبي
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- STATUS SECTION -->
+  <div id="section-status" class="section">
+    <div class="card">
+      <div class="card-title">🔍 الاستعلام عن طلب</div>
+      <div class="field">
+        <label>رقم الطلب</label>
+        <input type="text" id="s-request-id" placeholder="WJ-2025-0047" dir="ltr" style="text-align:center;font-size:18px;font-weight:700;letter-spacing:2px">
+      </div>
+      <button class="btn-primary" onclick="searchRequest()">🔍 بحث</button>
+    </div>
+
+    <div id="status-result" style="display:none">
+
+      <!-- REQUEST INFO -->
+      <div class="card">
+        <div class="card-title">📋 بيانات الطلب</div>
+        <div id="request-info"></div>
+      </div>
+
+      <!-- TIMELINE -->
+      <div class="card">
+        <div class="card-title">📍 مسار الطلب</div>
+        <div class="timeline" id="request-timeline"></div>
+      </div>
+
+      <!-- UPLOAD DOCS -->
+      <div class="card" id="upload-section" style="display:none">
+        <div class="card-title">📎 رفع مستندات</div>
+        <p style="font-size:13px;color:var(--gray);margin-bottom:12px">يمكنك رفع المستندات الناقصة مباشرة من هنا</p>
+        <div class="doc-upload-area" onclick="document.getElementById('doc-file').click()">
+          <input type="file" id="doc-file" accept="image/*,.pdf" onchange="handleDocUpload(event)" multiple>
+          <div style="font-size:32px;margin-bottom:8px">📎</div>
+          <p style="font-size:14px;font-weight:600;color:var(--gray)">اضغط لرفع المستندات</p>
+          <small style="color:var(--gray)">صور أو PDF</small>
+        </div>
+        <div id="uploaded-docs" style="margin-top:12px"></div>
+        <button class="btn-primary" id="btn-send-docs" style="display:none;margin-top:12px" onclick="sendDocs()">
+          📤 إرسال المستندات
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// =====================
+// CONFIG
+// =====================
+const FIREBASE_PROJECT = 'petitions-wadi';
+const GEMINI_KEY = 'AIzaSyCDvDyeR5zIHrJyp3hr_Ypb5ePb7tKFaTY';
+const BOT_TOKEN = '8757928092:AAF31wqeBDHXKkswZiYJIqAhL0S_d2h70OI';
+
+const SERVICE_DOCS = {
+  'توصيل مرافق': ['بطاقة الرقم القومي','عقد الملكية أو الإيجار','رسم كروكي للموقع','إيصال سداد الرسوم'],
+  'ترخيص بناء': ['بطاقة الرقم القومي','سند ملكية الأرض','رسم هندسي معتمد','شهادة عدم ممانعة الجيران','إيصال سداد الرسوم'],
+  'دعم زراعي': ['بطاقة الرقم القومي','بطاقة الحيازة الزراعية','كشف حساب بنكي'],
+  'شكوى / بلاغ': ['بطاقة الرقم القومي','وصف مفصل للشكوى'],
+  'شهادة / وثيقة': ['بطاقة الرقم القومي','طلب مكتوب بالغرض','إيصال سداد الرسوم']
+};
+
+const STATUS_MAP = {
+  new: { label: 'تم الاستلام', icon: '📨', cls: 'status-new' },
+  received: { label: 'تم الاستلام والتسجيل', icon: '📨', cls: 'status-new' },
+  ai_check: { label: 'جارٍ فحص المستندات', icon: '🤖', cls: 'status-new' },
+  awaiting_originals: { label: 'مطلوب تقديم أصول المستندات', icon: '📁', cls: 'status-returned' },
+  review: { label: 'قيد المراجعة', icon: '👨‍💼', cls: 'status-review' },
+  inspection: { label: 'في انتظار المعاينة الميدانية', icon: '🔍', cls: 'status-review' },
+  payment: { label: 'مطلوب سداد الرسوم', icon: '💳', cls: 'status-review' },
+  done: { label: 'تم إنجاز الخدمة', icon: '✅', cls: 'status-done' },
+  approved: { label: 'معتمد من المدير', icon: '🔐', cls: 'status-done' },
+  returned: { label: 'معاد للاستيفاء', icon: '↩️', cls: 'status-returned' },
+  incomplete: { label: 'مستندات ناقصة', icon: '⚠️', cls: 'status-returned' },
+  rejected: { label: 'مرفوض', icon: '🚫', cls: 'status-returned' },
+  cancelled: { label: 'ملغي', icon: '❌', cls: 'status-returned' }
+};
+
+const WORKFLOW_STEPS = [
+  { key: 'received', label: 'استلام الطلب', icon: '📨' },
+  { key: 'ai_check', label: 'فحص المستندات', icon: '🤖' },
+  { key: 'awaiting_originals', label: 'تقديم أصول المستندات', icon: '📁' },
+  { key: 'review', label: 'مراجعة الموظف المختص', icon: '👨‍💼' },
+  { key: 'inspection', label: 'المعاينة الميدانية', icon: '🔍' },
+  { key: 'payment', label: 'سداد الرسوم', icon: '💳' },
+  { key: 'done', label: 'إتمام الخدمة', icon: '✅' },
+  { key: 'approved', label: 'اعتماد المدير', icon: '🔐' }
+];
+
+let idBase64 = null;
+let uploadedFiles = [];
+let currentRequestId = null;
+
+// =====================
+// TABS
+// =====================
+function showTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('section-' + tab).classList.add('active');
+}
+
+function goToStatus() {
+  document.querySelectorAll('.tab')[1].click();
+  const id = document.getElementById('success-id-display').textContent;
+  document.getElementById('s-request-id').value = id;
+  searchRequest();
+}
+
+// =====================
+// TOAST
+// =====================
+function toast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+// =====================
+// DOCS
+// =====================
+function updateDocs() {
+  const service = document.getElementById('f-service').value;
+  const docs = SERVICE_DOCS[service] || [];
+  const container = document.getElementById('docs-required');
+  const list = document.getElementById('docs-list');
+  if (docs.length) {
+    list.innerHTML = docs.map(d => `<li>${d}</li>`).join('');
+    container.style.display = 'block';
+  } else {
+    container.style.display = 'none';
+  }
+}
+
+// =====================
+// ID UPLOAD & GEMINI
+// =====================
+function handleIdUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    idBase64 = ev.target.result.split(',')[1];
+    document.getElementById('id-img').src = ev.target.result;
+    document.getElementById('id-preview').style.display = 'block';
+    document.getElementById('btn-extract').style.display = 'flex';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function extractFromId() {
+  const btn = document.getElementById('btn-extract');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> جارٍ الاستخراج...';
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: 'استخرج من هذه الصورة لبطاقة الرقم القومي المصرية: الاسم الرباعي كاملاً، الرقم القومي (14 رقم). أجب بـ JSON فقط بهذا الشكل: {"name": "...", "nid": "..."}' },
+            { inline_data: { mime_type: 'image/jpeg', data: idBase64 } }
+          ]
+        }]
+      })
+    });
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const match = text.match(/\{[^}]+\}/);
+    if (match) {
+      const extracted = JSON.parse(match[0]);
+      if (extracted.name) document.getElementById('f-name').value = extracted.name;
+      if (extracted.nid) document.getElementById('f-nid').value = extracted.nid;
+      toast('✅ تم استخراج البيانات بنجاح', 'success');
+    } else {
+      toast('⚠️ لم يتم التعرف على البيانات، أدخلها يدوياً', 'error');
+    }
+  } catch(e) {
+    toast('❌ خطأ في الاتصال', 'error');
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<span>✨</span> استخراج البيانات بالذكاء الاصطناعي';
+}
+
+// =====================
+// SUBMIT REQUEST
+// =====================
+async function submitRequest() {
+  const name = document.getElementById('f-name').value.trim();
+  const nid = document.getElementById('f-nid').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+  const center = document.getElementById('f-center').value;
+  const service = document.getElementById('f-service').value;
+  const details = document.getElementById('f-details').value.trim();
+  const address = document.getElementById('f-address').value.trim();
+
+  if (!name || name.split(/\s+/).length < 4) return toast('⚠️ أدخل اسمك الرباعي كاملاً', 'error');
+  if (!/^\d{14}$/.test(nid)) return toast('⚠️ الرقم القومي يجب أن يكون 14 رقماً', 'error');
+  if (!/^01\d{9}$/.test(phone)) return toast('⚠️ رقم الهاتف غير صحيح', 'error');
+  if (!center) return toast('⚠️ اختر المركز التكنولوجي', 'error');
+  if (!service) return toast('⚠️ اختر نوع الخدمة', 'error');
+
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> جارٍ التقديم...';
+
+  const now = new Date().toISOString();
+  const requestId = 'WJ-' + new Date().getFullYear() + '-C' + String(Date.now()).slice(-4);
+  const missingDocs = SERVICE_DOCS[service] || [];
+
+  // جلب chatId من URL لو موجود
+  const urlParams = new URLSearchParams(window.location.search);
+  const telegramChatId = urlParams.get('chat_id') || '';
+
+  const request = {
+    id: { stringValue: requestId },
+    name: { stringValue: name },
+    nid: { stringValue: nid },
+    phone: { stringValue: phone },
+    address: { stringValue: address },
+    center: { stringValue: center },
+    service: { stringValue: service },
+    details: { stringValue: details },
+    telegramChatId: { stringValue: telegramChatId },
+    source: { stringValue: 'citizen_portal' },
+    status: { stringValue: 'new' },
+    createdAt: { stringValue: now },
+    updatedAt: { stringValue: now },
+    missingDocs: { arrayValue: { values: missingDocs.map(d => ({ stringValue: d })) } },
+    docs: { arrayValue: { values: [] } },
+    steps: { arrayValue: { values: [
+      { mapValue: { fields: { s: { stringValue: 'received' }, t: { stringValue: now }, by: { stringValue: 'بوابة المواطن' } } } },
+      { mapValue: { fields: { s: { stringValue: 'ai_check' }, t: { stringValue: new Date(Date.now()+2000).toISOString() }, by: { stringValue: 'النظام' } } } }
+    ]}}
+  };
+
+  try {
+    const res = await fetch(`https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}/databases/(default)/documents/requests/${requestId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: request })
+    });
+
+    if (!res.ok) throw new Error('Firebase error');
+
+    // إشعار تليجرام لو في chat_id
+    if (telegramChatId) {
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: telegramChatId,
+          text: `🎉 تم تقديم طلبك بنجاح!\n\n📋 رقم طلبك:\n${requestId}\n\n👤 الاسم: ${name}\n📌 الخدمة: ${service}\n🏢 المركز: ${center}\n\nسيتم إشعارك عند كل تحديث 🏛️`
+        })
+      });
+    }
+
+    document.getElementById('success-id-display').textContent = requestId;
+    document.getElementById('btn-submit').style.display = 'none';
+    document.getElementById('submit-success').style.display = 'block';
+    toast('✅ تم تقديم طلبك بنجاح', 'success');
+
+  } catch(e) {
+    toast('❌ حدث خطأ، حاول مرة أخرى', 'error');
+    btn.disabled = false;
+    btn.innerHTML = '✅ تقديم الطلب';
+  }
+}
+
+// =====================
+// SEARCH REQUEST
+// =====================
+async function searchRequest() {
+  const id = document.getElementById('s-request-id').value.trim().toUpperCase();
+  if (!id) return toast('⚠️ أدخل رقم الطلب', 'error');
+
+  try {
+    const res = await fetch(`https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}/databases/(default)/documents/requests/${id}`);
+    if (!res.ok) {
+      toast('❌ لم يتم العثور على الطلب', 'error');
+      return;
+    }
+    const data = await res.json();
+    if (!data.fields) {
+      toast('❌ لم يتم العثور على الطلب', 'error');
+      return;
+    }
+
+    currentRequestId = id;
+    renderRequestStatus(data.fields);
+    document.getElementById('status-result').style.display = 'block';
+
+  } catch(e) {
+    toast('❌ خطأ في الاتصال', 'error');
+  }
+}
+
+function getStr(field) { return field?.stringValue || '—'; }
+
+function renderRequestStatus(fields) {
+  const status = getStr(fields.status);
+  const statusInfo = STATUS_MAP[status] || { label: status, icon: '📋', cls: 'status-new' };
+
+  // Info
+  document.getElementById('request-info').innerHTML = `
+    <div class="info-row">
+      <span>رقم الطلب</span>
+      <span style="font-family:monospace;color:var(--green);font-size:15px">${getStr(fields.id)}</span>
+    </div>
+    <div class="info-row">
+      <span>الاسم</span><span>${getStr(fields.name)}</span>
+    </div>
+    <div class="info-row">
+      <span>الخدمة</span><span>${getStr(fields.service)}</span>
+    </div>
+    <div class="info-row">
+      <span>المركز</span><span>${getStr(fields.center)}</span>
+    </div>
+    <div class="info-row">
+      <span>الحالة</span>
+      <span class="status-badge ${statusInfo.cls}">${statusInfo.icon} ${statusInfo.label}</span>
+    </div>
+    <div class="info-row">
+      <span>تاريخ التقديم</span>
+      <span>${new Date(getStr(fields.createdAt)).toLocaleDateString('ar-EG')}</span>
+    </div>
+  `;
+
+  // Timeline
+  const steps = fields.steps?.arrayValue?.values || [];
+  const doneSteps = steps.map(s => s.mapValue?.fields?.s?.stringValue).filter(Boolean);
+
+  const timelineHtml = WORKFLOW_STEPS.map(step => {
+    const isDone = doneSteps.includes(step.key);
+    const isCurrent = step.key === status;
+    const cls = isDone ? 'done' : isCurrent ? 'current' : 'pending';
+    const desc = isDone ? 'تم' : isCurrent ? 'جارٍ الآن' : 'في الانتظار';
+    return `<div class="tl-item ${cls}">
+      <div class="tl-title">${step.icon} ${step.label}</div>
+      <div class="tl-desc">${desc}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('request-timeline').innerHTML = timelineHtml;
+
+  // Show upload section if returned/incomplete
+  const showUpload = ['returned', 'incomplete', 'awaiting_originals'].includes(status);
+  document.getElementById('upload-section').style.display = showUpload ? 'block' : 'none';
+}
+
+// =====================
+// UPLOAD DOCS
+// =====================
+function handleDocUpload(e) {
+  uploadedFiles = Array.from(e.target.files);
+  const container = document.getElementById('uploaded-docs');
+  container.innerHTML = uploadedFiles.map(f =>
+    `<div class="doc-item">${f.name}</div>`
+  ).join('');
+  document.getElementById('btn-send-docs').style.display = uploadedFiles.length ? 'block' : 'none';
+}
+
+async function sendDocs() {
+  if (!uploadedFiles.length || !currentRequestId) return;
+  toast('📤 جارٍ الرفع...', '');
+
+  // في الـ prototype — بنسجل إن المستندات اترفعت
+  const now = new Date().toISOString();
+  const docNames = uploadedFiles.map(f => f.name);
+
+  try {
+    // نحدث الطلب في Firebase
+    const res = await fetch(`https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}/databases/(default)/documents/requests/${currentRequestId}?updateMask.fieldPaths=updatedAt&updateMask.fieldPaths=status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fields: {
+          updatedAt: { stringValue: now },
+          citizenUploadedDocs: { arrayValue: { values: docNames.map(n => ({ stringValue: n })) } }
+        }
+      })
+    });
+
+    toast('✅ تم رفع المستندات بنجاح', 'success');
+    document.getElementById('upload-section').style.display = 'none';
+    uploadedFiles = [];
+
+  } catch(e) {
+    toast('❌ خطأ في الرفع', 'error');
+  }
+}
+
+// تحقق من URL params عند التحميل
+window.onload = () => {
+  const params = new URLSearchParams(window.location.search);
+  const reqId = params.get('request_id');
+  if (reqId) {
+    document.querySelectorAll('.tab')[1].click();
+    document.getElementById('s-request-id').value = reqId;
+    searchRequest();
+  }
+};
+</script>
+</body>
+</html>
