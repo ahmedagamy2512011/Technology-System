@@ -646,31 +646,35 @@ async function extractFromId() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> جارٍ الاستخراج...';
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent`, {
+    const prompt = 'من صورة بطاقة الرقم القومي المصرية، استخرج البيانات وأجب على ثلاثة أسطر فقط:\nالاسم: [الاسم الرباعي]\nالرقم القومي: [14 رقم]\nالعنوان: [العنوان]\nاكتب غير موجود اذا لم تجد.';
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + GEMINI_KEY, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-goog-api-key': GEMINI_KEY },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: 'استخرج من هذه الصورة لبطاقة الرقم القومي المصرية كل البيانات الموجودة: الاسم الرباعي كاملاً، الرقم القومي (14 رقم)، العنوان. أجب بـ JSON فقط بهذا الشكل: {"name": "...", "nid": "...", "address": "..."}. إذا لم تجد العنوان اجعله string فارغ.' },
-            { inline_data: { mime_type: 'image/jpeg', data: idBase64 } }
-          ]
-        }]
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: 'image/jpeg', data: idBase64 } }] }] })
     });
     const data = await res.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const match = text.match(/\{[^}]+\}/);
-    if (match) {
-      const extracted = JSON.parse(match[0]);
-      if (extracted.name) document.getElementById('f-name').value = extracted.name;
-      if (extracted.nid) document.getElementById('f-nid').value = extracted.nid;
-      if (extracted.address) document.getElementById('f-address').value = extracted.address;
-      toast('✅ تم استخراج البيانات بنجاح', 'success');
-    } else {
-      toast('⚠️ لم يتم التعرف على البيانات، أدخلها يدوياً', 'error');
+    const text = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    let extracted = [];
+    const ln1 = lines[0] || '';
+    if (/^الاسم/.test(ln1)) {
+      const nameVal = ln1.replace(/^الاسم\s*[:\-،]?\s*/, '').trim();
+      if (nameVal && nameVal !== 'غير موجود') { document.getElementById('f-name').value = nameVal; extracted.push('الاسم'); }
     }
+    const ln2 = lines[1] || '';
+    if (/^الرقم القومي/.test(ln2)) {
+      const nidVal = ln2.replace(/^الرقم القومي\s*[:\-،]?\s*/, '').replace(/\s/g,'').trim();
+      if (/^\d{14}$/.test(nidVal)) { document.getElementById('f-nid').value = nidVal; extracted.push('الرقم القومي'); }
+    }
+    const ln3 = lines[2] || '';
+    if (/^العنوان/.test(ln3)) {
+      const addrVal = ln3.replace(/^العنوان\s*[:\-،]?\s*/, '').trim();
+      if (addrVal && addrVal !== 'غير موجود') { document.getElementById('f-address').value = addrVal; extracted.push('العنوان'); }
+    }
+    if (extracted.length > 0) { toast('✅ تم استخراج: ' + extracted.join(' — '), 'success'); }
+    else { toast('⚠️ لم يتم التعرف على البيانات، أدخلها يدوياً', 'error'); }
   } catch(e) {
+    console.error(e);
     toast('❌ خطأ في الاتصال', 'error');
   }
   btn.disabled = false;
