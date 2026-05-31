@@ -540,7 +540,7 @@
 // CONFIG
 // =====================
 const FIREBASE_PROJECT = 'petitions-wadi';
-const GEMINI_KEY = 'AQ.Ab8RN6IVuJH07ujsSfkv4fgmFJksOjq4F9Ah-XaSD5jiQxXndQ';
+const GEMINI_KEY = 'AQ.Ab8RN6JA3xDO-9evUfFkXegV5n6Uioz5d8jQdbciFw2nEdGtrQ';
 const BOT_TOKEN = '8757928092:AAF31wqeBDHXKkswZiYJIqAhL0S_d2h70OI';
 
 const SERVICE_DOCS = {
@@ -646,9 +646,9 @@ async function extractFromId() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> جارٍ الاستخراج...';
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-goog-api-key': GEMINI_KEY },
       body: JSON.stringify({
         contents: [{
           parts: [
