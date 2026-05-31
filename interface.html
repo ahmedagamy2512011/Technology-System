@@ -1012,14 +1012,28 @@ body {
     // Real-time listener — يحدّث الواجهة لما يتغير شيء في Firebase من أي جهاز
     window.FirebaseDB.watchRequests(function(requests) {
       if (!requests || !requests.length) return;
+      // تأكد إن كل طلب عنده الحقول الأساسية
+      var validRequests = requests.filter(function(r) {
+        return r && r.id && r.name && r.status;
+      });
+      if (!validRequests.length) return;
       // حدّث localStorage بأحدث بيانات من Firebase
       try {
-        localStorage.setItem('wj_requests', JSON.stringify(requests));
-      } catch(e) {}
+        // دمج مع البيانات الموجودة — مش استبدال كامل
+        var existing = [];
+        try { existing = JSON.parse(localStorage.getItem('wj_requests') || '[]'); } catch(e) {}
+        // دمج — الطلبات من Firebase تاخد الأولوية
+        var existingMap = {};
+        existing.forEach(function(r) { if (r.id) existingMap[r.id] = r; });
+        validRequests.forEach(function(r) { existingMap[r.id] = r; });
+        var merged = Object.values(existingMap).sort(function(a,b) {
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        });
+        localStorage.setItem('wj_requests', JSON.stringify(merged));
+      } catch(e) { console.warn('localStorage sync error:', e); }
       // أعد رسم القائمة لو الواجهة شغالة
       if (typeof buildRequestsList === 'function') buildRequestsList();
       if (typeof updateSubbarCounts === 'function') updateSubbarCounts();
-      if (typeof refreshAll === 'function') refreshAll();
     });
 
     console.log('✅ Firebase connected — petitions-wadi');
