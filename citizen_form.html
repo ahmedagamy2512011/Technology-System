@@ -652,7 +652,7 @@ async function extractFromId() {
       body: JSON.stringify({
         contents: [{
           parts: [
-            { text: 'استخرج من هذه الصورة لبطاقة الرقم القومي المصرية: الاسم الرباعي كاملاً، الرقم القومي (14 رقم). أجب بـ JSON فقط بهذا الشكل: {"name": "...", "nid": "..."}' },
+            { text: 'استخرج من هذه الصورة لبطاقة الرقم القومي المصرية كل البيانات الموجودة: الاسم الرباعي كاملاً، الرقم القومي (14 رقم)، العنوان. أجب بـ JSON فقط بهذا الشكل: {"name": "...", "nid": "...", "address": "..."}. إذا لم تجد العنوان اجعله string فارغ.' },
             { inline_data: { mime_type: 'image/jpeg', data: idBase64 } }
           ]
         }]
@@ -665,6 +665,7 @@ async function extractFromId() {
       const extracted = JSON.parse(match[0]);
       if (extracted.name) document.getElementById('f-name').value = extracted.name;
       if (extracted.nid) document.getElementById('f-nid').value = extracted.nid;
+      if (extracted.address) document.getElementById('f-address').value = extracted.address;
       toast('✅ تم استخراج البيانات بنجاح', 'success');
     } else {
       toast('⚠️ لم يتم التعرف على البيانات، أدخلها يدوياً', 'error');
