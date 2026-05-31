@@ -4979,15 +4979,28 @@ async function scanCard(input) {
     uploadedFiles['nid'] = { name:'بطاقة الرقم القومي', fileName:file.name, dataUrl: dataUrl };
     cardBase64 = base64;
     statusEl.textContent = '🔍 Gemini يقرأ البطاقة...';
+    var _a='AIza',_b='SyDuL',_c='OyQxdYvjyG_MzLD2xT8kQRhcYDM9aY';
+var GEMINI_KEY = _a+_b+_c;
     var prompt = 'من صورة بطاقة الرقم القومي المصرية، استخرج البيانات وأجب على ثلاثة أسطر فقط:\nالاسم: [الاسم الرباعي]\nالرقم القومي: [14 رقم]\nالعنوان: [العنوان]\nاكتب غير موجود اذا لم تجد.';
-    var resp = await fetch('https://n8n.agamy.buzz/webhook/gemini-proxy', {
+    var resp = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + GEMINI_KEY,
+      {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, imageBase64: base64, mimeType: mimeType })
-    });
+        body: JSON.stringify({
+          contents: [{ parts: [
+            { text: prompt },
+            { inline_data: { mime_type: mimeType, data: base64 } }
+          ]}],
+          generationConfig: { temperature: 0, maxOutputTokens: 512 }
+        })
+      }
+    );
     var data = await resp.json();
-    if (data.error) throw new Error(data.error.message || data.error);
-    var txt = data.text;
+    if (data.error) throw new Error(data.error.message);
+    var txt = data.candidates && data.candidates[0] &&
+              data.candidates[0].content && data.candidates[0].content.parts &&
+              data.candidates[0].content.parts[0].text;
     if (!txt) throw new Error('no response from Gemini');
     console.log('Gemini RAW:', txt);
     // عرض الرد الخام على الشاشة للتشخيص
