@@ -466,6 +466,20 @@
       </div>
     </div>
 
+    <!-- DOCS UPLOAD -->
+    <div class="card" id="docs-upload-card" style="display:none">
+      <div class="card-title">📎 رفع المستندات المطلوبة</div>
+      <p style="font-size:13px;color:var(--gray);margin-bottom:12px">يمكنك رفع المستندات الآن أو لاحقاً من صفحة متابعة الطلب</p>
+      <div id="doc-upload-items"></div>
+      <div class="doc-upload-area" onclick="document.getElementById('req-doc-file').click()" style="margin-top:12px">
+        <input type="file" id="req-doc-file" accept="image/*,.pdf" multiple onchange="handleReqDocUpload(event)">
+        <div style="font-size:32px;margin-bottom:8px">📎</div>
+        <p style="font-size:14px;font-weight:600;color:var(--gray)">اضغط لرفع المستندات</p>
+        <small style="color:var(--gray)">صور أو PDF — يمكن رفع أكثر من ملف</small>
+      </div>
+      <div id="req-uploaded-list" style="margin-top:12px"></div>
+    </div>
+
     <!-- SUBMIT -->
     <button class="btn-primary" id="btn-submit" onclick="submitRequest()">
       ✅ تقديم الطلب
@@ -617,11 +631,16 @@ function updateDocs() {
   const docs = SERVICE_DOCS[service] || [];
   const container = document.getElementById('docs-required');
   const list = document.getElementById('docs-list');
+  const uploadCard = document.getElementById('docs-upload-card');
+  const uploadItems = document.getElementById('doc-upload-items');
   if (docs.length) {
     list.innerHTML = docs.map(d => `<li>${d}</li>`).join('');
     container.style.display = 'block';
+    uploadItems.innerHTML = '<p style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px">المستندات المطلوبة:</p>' + docs.map(d => `<div class="doc-item">📋 ${d}</div>`).join('');
+    uploadCard.style.display = 'block';
   } else {
     container.style.display = 'none';
+    uploadCard.style.display = 'none';
   }
 }
 
@@ -688,6 +707,31 @@ async function extractFromId() {
 }
 
 // =====================
+// REQ DOCS UPLOAD
+// =====================
+let reqDocs = [];
+
+function handleReqDocUpload(e) {
+  const files = Array.from(e.target.files);
+  reqDocs = reqDocs.concat(files);
+  renderReqDocs();
+}
+
+function renderReqDocs() {
+  const list = document.getElementById('req-uploaded-list');
+  list.innerHTML = reqDocs.map((f, i) => `
+    <div class="doc-item" style="justify-content:space-between">
+      <span>📄 ${f.name}</span>
+      <span onclick="removeReqDoc(${i})" style="cursor:pointer;color:var(--red);font-size:18px">✕</span>
+    </div>`).join('');
+}
+
+function removeReqDoc(i) {
+  reqDocs.splice(i, 1);
+  renderReqDocs();
+}
+
+// =====================
 // SUBMIT REQUEST
 // =====================
 async function submitRequest() {
@@ -713,6 +757,14 @@ async function submitRequest() {
   const requestId = 'WJ-' + new Date().getFullYear() + '-C' + String(Date.now()).slice(-4);
   const missingDocs = SERVICE_DOCS[service] || [];
 
+  // تحويل الملفات لـ base64
+  const docsBase64 = await Promise.all(reqDocs.map(f => new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res({ name: f.name, data: r.result.split(',')[1], type: f.type });
+    r.onerror = rej;
+    r.readAsDataURL(f);
+  })));
+
   // جلب chatId من URL لو موجود
   const urlParams = new URLSearchParams(window.location.search);
   const telegramChatId = urlParams.get('chat_id') || '';
@@ -732,7 +784,7 @@ async function submitRequest() {
     createdAt: { stringValue: now },
     updatedAt: { stringValue: now },
     missingDocs: { arrayValue: { values: missingDocs.map(d => ({ stringValue: d })) } },
-    docs: { arrayValue: { values: [] } },
+    docs: { arrayValue: { values: docsBase64.map(d => ({ mapValue: { fields: { fileName: { stringValue: d.name }, fileType: { stringValue: d.type } } } })) } },
     steps: { arrayValue: { values: [
       { mapValue: { fields: { s: { stringValue: 'received' }, t: { stringValue: now }, by: { stringValue: 'بوابة المواطن' } } } },
       { mapValue: { fields: { s: { stringValue: 'ai_check' }, t: { stringValue: new Date(Date.now()+2000).toISOString() }, by: { stringValue: 'النظام' } } } }
