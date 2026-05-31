@@ -661,7 +661,8 @@ async function extractFromId() {
   btn.innerHTML = '<span class="spinner"></span> جارٍ الاستخراج...';
   try {
     const prompt = 'من صورة بطاقة الرقم القومي المصرية، استخرج البيانات وأجب على ثلاثة أسطر فقط:\nالاسم: [الاسم الرباعي]\nالرقم القومي: [14 رقم]\nالعنوان: [العنوان]\nاكتب غير موجود اذا لم تجد.';
-    const res = await fetch('https://n8n.agamy.buzz/webhook/gemini-proxy', {
+    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://n8n.agamy.buzz/webhook/gemini-proxy');
+    const res = await fetch(proxyUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt, imageBase64: idBase64, mimeType: 'image/jpeg' })
