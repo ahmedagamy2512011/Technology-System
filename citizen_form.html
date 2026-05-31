@@ -469,15 +469,8 @@
     <!-- DOCS UPLOAD -->
     <div class="card" id="docs-upload-card" style="display:none">
       <div class="card-title">📎 رفع المستندات المطلوبة</div>
-      <p style="font-size:13px;color:var(--gray);margin-bottom:12px">يمكنك رفع المستندات الآن أو لاحقاً من صفحة متابعة الطلب</p>
+      <p style="font-size:13px;color:var(--gray);margin-bottom:16px">ارفع كل مستند بشكل منفصل — البطاقة التي رفعتها سابقاً تم احتسابها تلقائياً</p>
       <div id="doc-upload-items"></div>
-      <div class="doc-upload-area" onclick="document.getElementById('req-doc-file').click()" style="margin-top:12px">
-        <input type="file" id="req-doc-file" accept="image/*,.pdf" multiple onchange="handleReqDocUpload(event)">
-        <div style="font-size:32px;margin-bottom:8px">📎</div>
-        <p style="font-size:14px;font-weight:600;color:var(--gray)">اضغط لرفع المستندات</p>
-        <small style="color:var(--gray)">صور أو PDF — يمكن رفع أكثر من ملف</small>
-      </div>
-      <div id="req-uploaded-list" style="margin-top:12px"></div>
     </div>
 
     <!-- SUBMIT -->
@@ -626,23 +619,7 @@ function toast(msg, type = '') {
 // =====================
 // DOCS
 // =====================
-function updateDocs() {
-  const service = document.getElementById('f-service').value;
-  const docs = SERVICE_DOCS[service] || [];
-  const container = document.getElementById('docs-required');
-  const list = document.getElementById('docs-list');
-  const uploadCard = document.getElementById('docs-upload-card');
-  const uploadItems = document.getElementById('doc-upload-items');
-  if (docs.length) {
-    list.innerHTML = docs.map(d => `<li>${d}</li>`).join('');
-    container.style.display = 'block';
-    uploadItems.innerHTML = '<p style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px">المستندات المطلوبة:</p>' + docs.map(d => `<div class="doc-item">📋 ${d}</div>`).join('');
-    uploadCard.style.display = 'block';
-  } else {
-    container.style.display = 'none';
-    uploadCard.style.display = 'none';
-  }
-}
+
 
 // =====================
 // ID UPLOAD & GEMINI
@@ -709,26 +686,58 @@ async function extractFromId() {
 // =====================
 // REQ DOCS UPLOAD
 // =====================
-let reqDocs = [];
+let reqDocs = {}; // { docName: File }
 
-function handleReqDocUpload(e) {
-  const files = Array.from(e.target.files);
-  reqDocs = reqDocs.concat(files);
-  renderReqDocs();
+function updateDocs() {
+  const service = document.getElementById('f-service').value;
+  const docs = SERVICE_DOCS[service] || [];
+  const container = document.getElementById('docs-required');
+  const list = document.getElementById('docs-list');
+  const uploadCard = document.getElementById('docs-upload-card');
+  const uploadItems = document.getElementById('doc-upload-items');
+
+  if (docs.length) {
+    list.innerHTML = docs.map(d => `<li>${d}</li>`).join('');
+    container.style.display = 'block';
+    renderDocUploadItems(docs);
+    uploadCard.style.display = 'block';
+  } else {
+    container.style.display = 'none';
+    uploadCard.style.display = 'none';
+  }
 }
 
-function renderReqDocs() {
-  const list = document.getElementById('req-uploaded-list');
-  list.innerHTML = reqDocs.map((f, i) => `
-    <div class="doc-item" style="justify-content:space-between">
-      <span>📄 ${f.name}</span>
-      <span onclick="removeReqDoc(${i})" style="cursor:pointer;color:var(--red);font-size:18px">✕</span>
-    </div>`).join('');
+function renderDocUploadItems(docs) {
+  const uploadItems = document.getElementById('doc-upload-items');
+  uploadItems.innerHTML = docs.map((doc, i) => {
+    const isId = doc.includes('الرقم القومي');
+    const hasFile = reqDocs[doc] || (isId && idBase64);
+    return `<div class="doc-upload-row" id="doc-row-${i}" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;margin-bottom:8px;background:${hasFile ? '#d1fae5' : '#f9fafb'};border:1.5px solid ${hasFile ? 'var(--green)' : 'var(--border)'}">
+      <div style="flex:1;font-size:13px;font-weight:600">${hasFile ? '✅' : '📋'} ${doc}</div>
+      ${hasFile
+        ? `<span style="font-size:12px;color:var(--green);font-weight:600">${isId && !reqDocs[doc] ? 'من البطاقة المرفوعة' : reqDocs[doc]?.name || ''}</span>
+           <span onclick="removeDocFile('${doc}', ${i})" style="cursor:pointer;color:var(--red);font-size:18px;padding:0 4px" title="إزالة">✕</span>`
+        : `<label style="cursor:pointer;background:var(--green);color:white;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap">
+             📎 رفع
+             <input type="file" accept="image/*,.pdf" style="display:none" onchange="handleDocFile(event, '${doc}', ${i})">
+           </label>`
+      }
+    </div>`;
+  }).join('');
 }
 
-function removeReqDoc(i) {
-  reqDocs.splice(i, 1);
-  renderReqDocs();
+function handleDocFile(e, docName, idx) {
+  const file = e.target.files[0];
+  if (!file) return;
+  reqDocs[docName] = file;
+  const service = document.getElementById('f-service').value;
+  renderDocUploadItems(SERVICE_DOCS[service] || []);
+}
+
+function removeDocFile(docName, idx) {
+  delete reqDocs[docName];
+  const service = document.getElementById('f-service').value;
+  renderDocUploadItems(SERVICE_DOCS[service] || []);
 }
 
 // =====================
@@ -758,12 +767,18 @@ async function submitRequest() {
   const missingDocs = SERVICE_DOCS[service] || [];
 
   // تحويل الملفات لـ base64
-  const docsBase64 = await Promise.all(reqDocs.map(f => new Promise((res, rej) => {
+  const docEntries = Object.entries(reqDocs);
+  const docsBase64 = await Promise.all(docEntries.map(([docName, f]) => new Promise((res, rej) => {
     const r = new FileReader();
-    r.onload = () => res({ name: f.name, data: r.result.split(',')[1], type: f.type });
+    r.onload = () => res({ name: f.name, docName, data: r.result.split(',')[1], type: f.type });
     r.onerror = rej;
     r.readAsDataURL(f);
   })));
+  // إضافة البطاقة لو اتستخدمت للاستخراج ومش في الملفات
+  const hasIdDoc = docsBase64.some(d => d.docName?.includes('الرقم القومي'));
+  if (!hasIdDoc && idBase64) {
+    docsBase64.push({ name: 'بطاقة_الرقم_القومي.jpg', docName: 'بطاقة الرقم القومي', data: idBase64, type: 'image/jpeg' });
+  }
 
   // جلب chatId من URL لو موجود
   const urlParams = new URLSearchParams(window.location.search);
@@ -784,7 +799,7 @@ async function submitRequest() {
     createdAt: { stringValue: now },
     updatedAt: { stringValue: now },
     missingDocs: { arrayValue: { values: missingDocs.map(d => ({ stringValue: d })) } },
-    docs: { arrayValue: { values: docsBase64.map(d => ({ mapValue: { fields: { fileName: { stringValue: d.name }, fileType: { stringValue: d.type } } } })) } },
+    docs: { arrayValue: { values: docsBase64.map(d => ({ mapValue: { fields: { fileName: { stringValue: d.name }, docName: { stringValue: d.docName || d.name }, fileType: { stringValue: d.type } } } })) } },
     steps: { arrayValue: { values: [
       { mapValue: { fields: { s: { stringValue: 'received' }, t: { stringValue: now }, by: { stringValue: 'بوابة المواطن' } } } },
       { mapValue: { fields: { s: { stringValue: 'ai_check' }, t: { stringValue: new Date(Date.now()+2000).toISOString() }, by: { stringValue: 'النظام' } } } }
