@@ -661,13 +661,13 @@ async function extractFromId() {
   btn.innerHTML = '<span class="spinner"></span> جارٍ الاستخراج...';
   try {
     const prompt = 'من صورة بطاقة الرقم القومي المصرية، استخرج البيانات وأجب على ثلاثة أسطر فقط:\nالاسم: [الاسم الرباعي]\nالرقم القومي: [14 رقم]\nالعنوان: [العنوان]\nاكتب غير موجود اذا لم تجد.';
-    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + GEMINI_KEY, {
+    const res = await fetch('https://divine-math-c16d.ahmedagamy939.workers.dev/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: 'image/jpeg', data: idBase64 } }] }] })
+      body: JSON.stringify({ prompt, imageBase64: idBase64, mimeType: 'image/jpeg' })
     });
     const data = await res.json();
-    const text = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+    const text = (data.text || '').trim();
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     let extracted = [];
     // البحث في كل الأسطر بغض النظر عن الترتيب
