@@ -550,6 +550,24 @@ const FIREBASE_PROJECT = 'petitions-wadi';
 const GEMINI_KEY = 'AQ.Ab8RN6JA3xDO-9evUfFkXegV5n6Uioz5d8jQdbciFw2nEdGtrQ';
 const BOT_TOKEN = '8757928092:AAF31wqeBDHXKkswZiYJIqAhL0S_d2h70OI';
 
+const CLOUDINARY_CLOUD = 'dq2ahuyvb';
+const CLOUDINARY_PRESET = 'wadi_docs';
+
+// رفع ملف على Cloudinary
+async function uploadToCloudinary(file, folder) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_PRESET);
+  formData.append('folder', folder || 'wadi_docs');
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/auto/upload`, {
+    method: 'POST',
+    body: formData
+  });
+  const data = await res.json();
+  if (data.secure_url) return data.secure_url;
+  throw new Error(data.error?.message || 'Upload failed');
+}
+
 const SERVICE_DOCS = {
   'توصيل مرافق': ['بطاقة الرقم القومي','عقد الملكية أو الإيجار','رسم كروكي للموقع','إيصال سداد الرسوم'],
   'ترخيص بناء': ['بطاقة الرقم القومي','سند ملكية الأرض','رسم هندسي معتمد','شهادة عدم ممانعة الجيران','إيصال سداد الرسوم'],
@@ -741,6 +759,35 @@ function removeDocFile(docName, idx) {
 }
 
 // =====================
+// IMAGE COMPRESSION
+// =====================
+async function compressImage(file, maxWidth=800, quality=0.6) {
+  return new Promise((resolve) => {
+    if (file.type === 'application/pdf') {
+      // PDF مش بنضغطه
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.readAsDataURL(file);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// =====================
 // SUBMIT REQUEST
 // =====================
 async function submitRequest() {
@@ -766,18 +813,34 @@ async function submitRequest() {
   const requestId = 'WJ-' + new Date().getFullYear() + '-C' + String(Date.now()).slice(-4);
   const missingDocs = SERVICE_DOCS[service] || [];
 
-  // تحويل الملفات لـ base64
+  // رفع الملفات على Cloudinary
   const docEntries = Object.entries(reqDocs);
-  const docsBase64 = await Promise.all(docEntries.map(([docName, f]) => new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res({ name: f.name, docName, data: r.result.split(',')[1], type: f.type });
-    r.onerror = rej;
-    r.readAsDataURL(f);
-  })));
+  const folder = 'wadi_docs/' + requestId;
+  
+  const docsUploaded = await Promise.all(docEntries.map(async ([docName, f]) => {
+    try {
+      const url = await uploadToCloudinary(f, folder);
+      return { name: f.name, docName, url, type: f.type };
+    } catch(e) {
+      console.warn('Upload failed for', docName, e);
+      // fallback: base64 مضغوط
+      const dataUrl = await compressImage(f);
+      return { name: f.name, docName, url: dataUrl, type: f.type };
+    }
+  }));
+
   // إضافة البطاقة لو اتستخدمت للاستخراج ومش في الملفات
-  const hasIdDoc = docsBase64.some(d => d.docName?.includes('الرقم القومي'));
+  const hasIdDoc = docsUploaded.some(d => d.docName?.includes('الرقم القومي'));
   if (!hasIdDoc && idBase64) {
-    docsBase64.push({ name: 'بطاقة_الرقم_القومي.jpg', docName: 'بطاقة الرقم القومي', data: idBase64, type: 'image/jpeg' });
+    try {
+      // تحويل base64 لـ File عشان نرفعه على Cloudinary
+      const blob = await fetch('data:image/jpeg;base64,' + idBase64).then(r => r.blob());
+      const idFile = new File([blob], 'بطاقة_الرقم_القومي.jpg', { type: 'image/jpeg' });
+      const url = await uploadToCloudinary(idFile, folder);
+      docsUploaded.push({ name: 'بطاقة_الرقم_القومي.jpg', docName: 'بطاقة الرقم القومي', url, type: 'image/jpeg' });
+    } catch(e) {
+      docsUploaded.push({ name: 'بطاقة_الرقم_القومي.jpg', docName: 'بطاقة الرقم القومي', url: 'data:image/jpeg;base64,' + idBase64, type: 'image/jpeg' });
+    }
   }
 
   // جلب chatId من URL لو موجود
@@ -799,7 +862,14 @@ async function submitRequest() {
     createdAt: { stringValue: now },
     updatedAt: { stringValue: now },
     missingDocs: { arrayValue: { values: missingDocs.map(d => ({ stringValue: d })) } },
-    docs: { arrayValue: { values: docsBase64.map(d => ({ mapValue: { fields: { fileName: { stringValue: d.name }, docName: { stringValue: d.docName || d.name }, fileType: { stringValue: d.type } } } })) } },
+    docs: { arrayValue: { values: docsUploaded.map(d => ({ stringValue: d.docName })) } },
+    docsFull: { arrayValue: { values: docsUploaded.map(d => ({ mapValue: { fields: {
+      name: { stringValue: d.docName },
+      fileName: { stringValue: d.name },
+      dataUrl: { stringValue: d.url },
+      fileType: { stringValue: d.type },
+      uploadedAt: { stringValue: now }
+    } } })) } },
     steps: { arrayValue: { values: [
       { mapValue: { fields: { s: { stringValue: 'received' }, t: { stringValue: now }, by: { stringValue: 'بوابة المواطن' } } } },
       { mapValue: { fields: { s: { stringValue: 'ai_check' }, t: { stringValue: new Date(Date.now()+2000).toISOString() }, by: { stringValue: 'النظام' } } } }
