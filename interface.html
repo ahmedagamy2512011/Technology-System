@@ -1012,25 +1012,14 @@ body {
     // Real-time listener — يحدّث الواجهة لما يتغير شيء في Firebase من أي جهاز
     window.FirebaseDB.watchRequests(function(requests) {
       if (!requests || !requests.length) return;
-      var validRequests = requests.filter(function(r) {
-        return r && r.id && r.name && r.status;
-      });
-      if (!validRequests.length) return;
-      // استخدم DB.save لكل طلب عشان _safeStorage يتحدث صح
-      setTimeout(function() {
-        if (typeof DB !== 'undefined' && DB.save) {
-          validRequests.forEach(function(r) {
-            try {
-              var existing = DB.getById(r.id);
-              if (!existing || new Date(r.updatedAt) >= new Date(existing.updatedAt)) {
-                DB.save(r);
-              }
-            } catch(e) {}
-          });
-          if (typeof buildRequestsList === 'function') buildRequestsList();
-          if (typeof updateSubbarCounts === 'function') updateSubbarCounts();
-        }
-      }, 500);
+      // حدّث localStorage بأحدث بيانات من Firebase
+      try {
+        localStorage.setItem('wj_requests', JSON.stringify(requests));
+      } catch(e) {}
+      // أعد رسم القائمة لو الواجهة شغالة
+      if (typeof buildRequestsList === 'function') buildRequestsList();
+      if (typeof updateSubbarCounts === 'function') updateSubbarCounts();
+      if (typeof refreshAll === 'function') refreshAll();
     });
 
     console.log('✅ Firebase connected — petitions-wadi');
@@ -4990,27 +4979,15 @@ async function scanCard(input) {
     uploadedFiles['nid'] = { name:'بطاقة الرقم القومي', fileName:file.name, dataUrl: dataUrl };
     cardBase64 = base64;
     statusEl.textContent = '🔍 Gemini يقرأ البطاقة...';
-    var GEMINI_KEY = 'AQ.Ab8RN6JA3xDO-9evUfFkXegV5n6Uioz5d8jQdbciFw2nEdGtrQ';
     var prompt = 'من صورة بطاقة الرقم القومي المصرية، استخرج البيانات وأجب على ثلاثة أسطر فقط:\nالاسم: [الاسم الرباعي]\nالرقم القومي: [14 رقم]\nالعنوان: [العنوان]\nاكتب غير موجود اذا لم تجد.';
-    var resp = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + GEMINI_KEY,
-      {
+    var resp = await fetch('https://n8n.agamy.buzz/webhook/gemini-proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [
-            { text: prompt },
-            { inline_data: { mime_type: mimeType, data: base64 } }
-          ]}],
-          generationConfig: { temperature: 0, maxOutputTokens: 512 }
-        })
-      }
-    );
+        body: JSON.stringify({ prompt, imageBase64: base64, mimeType: mimeType })
+    });
     var data = await resp.json();
-    if (data.error) throw new Error(data.error.message);
-    var txt = data.candidates && data.candidates[0] &&
-              data.candidates[0].content && data.candidates[0].content.parts &&
-              data.candidates[0].content.parts[0].text;
+    if (data.error) throw new Error(data.error.message || data.error);
+    var txt = data.text;
     if (!txt) throw new Error('no response from Gemini');
     console.log('Gemini RAW:', txt);
     // عرض الرد الخام على الشاشة للتشخيص
