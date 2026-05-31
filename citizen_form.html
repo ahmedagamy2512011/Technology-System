@@ -656,20 +656,26 @@ async function extractFromId() {
     const text = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     let extracted = [];
-    const ln1 = lines[0] || '';
-    if (/^الاسم/.test(ln1)) {
-      const nameVal = ln1.replace(/^الاسم\s*[:\-،]?\s*/, '').trim();
-      if (nameVal && nameVal !== 'غير موجود') { document.getElementById('f-name').value = nameVal; extracted.push('الاسم'); }
+    // البحث في كل الأسطر بغض النظر عن الترتيب
+    for (const ln of lines) {
+      if (/^الاسم/.test(ln)) {
+        const val = ln.replace(/^الاسم\s*[:\-،؛]?\s*/, '').trim();
+        if (val && val !== 'غير موجود' && val.split(/\s+/).length >= 2) {
+          document.getElementById('f-name').value = val; extracted.push('الاسم');
+        }
+      } else if (/^الرقم القومي|^رقم القومي|^الرقم/.test(ln)) {
+        const raw = ln.replace(/^[^\d]*/, '').replace(/\s/g,'').trim();
+        const nidVal = raw.match(/\d{14}/)?.[0];
+        if (nidVal) { document.getElementById('f-nid').value = nidVal; extracted.push('الرقم القومي'); }
+      } else if (/^العنوان/.test(ln)) {
+        const val = ln.replace(/^العنوان\s*[:\-،؛]?\s*/, '').trim();
+        if (val && val !== 'غير موجود') { document.getElementById('f-address').value = val; extracted.push('العنوان'); }
+      }
     }
-    const ln2 = lines[1] || '';
-    if (/^الرقم القومي/.test(ln2)) {
-      const nidVal = ln2.replace(/^الرقم القومي\s*[:\-،]?\s*/, '').replace(/\s/g,'').trim();
-      if (/^\d{14}$/.test(nidVal)) { document.getElementById('f-nid').value = nidVal; extracted.push('الرقم القومي'); }
-    }
-    const ln3 = lines[2] || '';
-    if (/^العنوان/.test(ln3)) {
-      const addrVal = ln3.replace(/^العنوان\s*[:\-،]?\s*/, '').trim();
-      if (addrVal && addrVal !== 'غير موجود') { document.getElementById('f-address').value = addrVal; extracted.push('العنوان'); }
+    // محاولة استخراج الرقم القومي من النص كله لو مش اتلقى
+    if (!extracted.includes('الرقم القومي')) {
+      const nidMatch = text.match(/\b\d{14}\b/);
+      if (nidMatch) { document.getElementById('f-nid').value = nidMatch[0]; extracted.push('الرقم القومي'); }
     }
     if (extracted.length > 0) { toast('✅ تم استخراج: ' + extracted.join(' — '), 'success'); }
     else { toast('⚠️ لم يتم التعرف على البيانات، أدخلها يدوياً', 'error'); }
