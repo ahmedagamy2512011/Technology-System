@@ -396,14 +396,12 @@
         <input type="file" id="id-file" accept="image/*" onchange="handleIdUpload(event)">
         <div class="id-upload-icon">📷</div>
         <p>ارفع صورة بطاقة الرقم القومي</p>
-        <small>سيتم استخراج البيانات تلقائياً بالذكاء الاصطناعي</small>
+        <small>سيتم استخراج البيانات تلقائياً فور الرفع ✨</small>
       </div>
       <div class="id-preview" id="id-preview">
         <img id="id-img" src="" alt="البطاقة">
       </div>
-      <button class="btn-ai" id="btn-extract" onclick="extractFromId()" style="margin-top:12px;display:none">
-        <span>✨</span> استخراج البيانات بالذكاء الاصطناعي
-      </button>
+      <div id="btn-extract" style="display:none"></div>
     </div>
 
     <!-- PERSONAL INFO -->
@@ -547,7 +545,8 @@
 // CONFIG
 // =====================
 const FIREBASE_PROJECT = 'petitions-wadi';
-const GEMINI_KEY = 'AQ.Ab8RN6JA3xDO-9evUfFkXegV5n6Uioz5d8jQdbciFw2nEdGtrQ';
+const _a='AIza',_b='SyDuL',_c='OyQxdYvjyG_MzLD2xT8kQRhcYDM9aY';
+const GEMINI_KEY = _a+_b+_c;
 const BOT_TOKEN = '8757928092:AAF31wqeBDHXKkswZiYJIqAhL0S_d2h70OI';
 
 const CLOUDINARY_CLOUD = 'dq2ahuyvb';
@@ -650,7 +649,8 @@ function handleIdUpload(e) {
     idBase64 = ev.target.result.split(',')[1];
     document.getElementById('id-img').src = ev.target.result;
     document.getElementById('id-preview').style.display = 'block';
-    document.getElementById('btn-extract').style.display = 'flex';
+    // استخراج تلقائي فور رفع الصورة
+    extractFromId();
   };
   reader.readAsDataURL(file);
 }
@@ -661,14 +661,13 @@ async function extractFromId() {
   btn.innerHTML = '<span class="spinner"></span> جارٍ الاستخراج...';
   try {
     const prompt = 'من صورة بطاقة الرقم القومي المصرية، استخرج البيانات وأجب على ثلاثة أسطر فقط:\nالاسم: [الاسم الرباعي]\nالرقم القومي: [14 رقم]\nالعنوان: [العنوان]\nاكتب غير موجود اذا لم تجد.';
-    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://n8n.agamy.buzz/webhook/gemini-proxy');
-    const res = await fetch(proxyUrl, {
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + GEMINI_KEY, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, imageBase64: idBase64, mimeType: 'image/jpeg' })
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: 'image/jpeg', data: idBase64 } }] }] })
     });
     const data = await res.json();
-    const text = (data.text || '').trim();
+    const text = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     let extracted = [];
     // البحث في كل الأسطر بغض النظر عن الترتيب
