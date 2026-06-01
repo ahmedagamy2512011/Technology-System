@@ -611,32 +611,39 @@ function showMyRequests() {
   const section = document.getElementById('my-requests-section');
   const list = document.getElementById('my-requests-list');
   const btnContainer = document.getElementById('my-requests-btn-container');
-  
+
   if (!requests.length) {
     toast('لا توجد طلبات سابقة', '');
     return;
   }
-  
+
   list.innerHTML = requests.map(r => `
     <div class="request-history-item" onclick="viewRequest('${r.id}')">
       <div class="request-history-id">${r.id}</div>
       <div class="request-history-meta">
-        ${r.service} — ${r.center} — ${new Date(r.createdAt).toLocaleDateString('ar-EG')}
+        ${r.service || ''} — ${r.center || ''} — ${r.createdAt ? new Date(r.createdAt).toLocaleDateString('ar-EG') : ''}
       </div>
       <div style="margin-top:6px">
-        <span class="status-badge status-${r.status === 'new' ? 'new' : r.status === 'done' ? 'done' : 'review'}" style="font-size:11px">
+        <span class="status-badge ${r.status === 'done' ? 'status-done' : r.status === 'new' ? 'status-new' : 'status-review'}" style="font-size:11px">
           ${r.status === 'new' ? '📨 جديد' : r.status === 'done' ? '✅ منجز' : '⏳ قيد المعالجة'}
         </span>
       </div>
     </div>
   `).join('');
-  
+
+  // إظهار قسم الطلبات
   section.style.display = 'block';
   btnContainer.style.display = 'none';
-  // إخفاء باقي الفورم
-  document.querySelectorAll('#section-form .card, #docs-upload-card, #btn-submit, #submit-success').forEach(el => {
-    if (el.id !== 'my-requests-section') el.style.display = 'none';
-  });
+
+  // إخفاء باقي عناصر الفورم
+  const formCards = document.querySelectorAll('#section-form > .card');
+  formCards.forEach(el => { el.style.display = 'none'; });
+  const docsCard = document.getElementById('docs-upload-card');
+  const submitBtn = document.getElementById('btn-submit');
+  const successDiv = document.getElementById('submit-success');
+  if (docsCard) docsCard.style.display = 'none';
+  if (submitBtn) submitBtn.style.display = 'none';
+  if (successDiv) successDiv.style.display = 'none';
 }
 
 function hideMyRequests() {
