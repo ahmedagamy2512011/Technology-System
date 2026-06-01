@@ -708,16 +708,31 @@ const STATUS_MAP = {
   cancelled: { label: 'ملغي', icon: '❌', cls: 'status-returned' }
 };
 
-const WORKFLOW_STEPS = [
-  { key: 'received', label: 'استلام الطلب', icon: '📨' },
-  { key: 'ai_check', label: 'فحص المستندات', icon: '🤖' },
-  { key: 'awaiting_originals', label: 'تقديم أصول المستندات', icon: '📁' },
-  { key: 'review', label: 'مراجعة الموظف المختص', icon: '👨‍💼' },
-  { key: 'inspection', label: 'المعاينة الميدانية', icon: '🔍' },
-  { key: 'payment', label: 'سداد الرسوم', icon: '💳' },
-  { key: 'done', label: 'إتمام الخدمة', icon: '✅' },
-  { key: 'approved', label: 'اعتماد المدير', icon: '🔐' }
-];
+const ALL_STEPS = {
+  received:           { s:'received',           icon:'📨', label:'استلام الطلب',               desc:'تم الاستلام والتسجيل' },
+  ai_check:           { s:'ai_check',           icon:'🤖', label:'فحص بالذكاء الاصطناعي',    desc:'التحقق من اكتمال المستندات' },
+  awaiting_originals: { s:'awaiting_originals', icon:'📁', label:'تقديم أصول المستندات',     desc:'في انتظار تقديم الأصول الورقية' },
+  review:             { s:'review',             icon:'👨‍💼', label:'مراجعة الموظف المختص',  desc:'فحص الطلب والموافقة المبدئية' },
+  inspection:         { s:'inspection',         icon:'🔍', label:'المعاينة الميدانية',        desc:'زيارة الموقع وتقييم العمل' },
+  payment:            { s:'payment',            icon:'💳', label:'سداد الرسوم',               desc:'سداد الرسوم عبر بوابة الدفع' },
+  done:               { s:'done',               icon:'✅', label:'إتمام الخدمة',              desc:'تم التنفيذ وإرسال الوثيقة' },
+  approved:           { s:'approved',           icon:'🔐', label:'اعتماد المدير',             desc:'اعتمد المدير الوثيقة' },
+  returned:           { s:'returned',           icon:'↩',  label:'معاد للاستيفاء',            desc:'أُعيد الطلب لاستكمال المستندات' },
+  rejected:           { s:'rejected',           icon:'🚫', label:'رفض الطلب',                desc:'تم رفض الطلب' },
+};
+
+const WORKFLOWS = {
+  'ترخيص بناء':    ['received','ai_check','awaiting_originals','review','inspection','payment','done','approved'],
+  'توصيل مرافق':   ['received','ai_check','awaiting_originals','review','done','approved'],
+  'دعم زراعي':     ['received','ai_check','review','inspection','done'],
+  'شكوى / بلاغ':   ['received','ai_check','review','inspection','done'],
+  'شهادة / وثيقة': ['received','ai_check','awaiting_originals','review','done','approved'],
+};
+const DEFAULT_WORKFLOW = ['received','ai_check','review','done'];
+
+function getServiceWorkflow(service) {
+  return (WORKFLOWS[service] || DEFAULT_WORKFLOW).map(s => ALL_STEPS[s]).filter(Boolean);
+}
 
 let idBase64 = null;
 let uploadedFiles = [];
@@ -1092,15 +1107,17 @@ function renderRequestStatus(fields) {
     </div>
   `;
 
-  // Timeline
+  // Timeline — حسب نوع الخدمة
+  const service = getStr(fields.service);
   const steps = fields.steps?.arrayValue?.values || [];
   const doneSteps = steps.map(s => s.mapValue?.fields?.s?.stringValue).filter(Boolean);
+  const serviceWorkflow = getServiceWorkflow(service);
 
-  const timelineHtml = WORKFLOW_STEPS.map(step => {
-    const isDone = doneSteps.includes(step.key);
-    const isCurrent = step.key === status;
+  const timelineHtml = serviceWorkflow.map(step => {
+    const isDone = doneSteps.includes(step.s);
+    const isCurrent = step.s === status;
     const cls = isDone ? 'done' : isCurrent ? 'current' : 'pending';
-    const desc = isDone ? 'تم' : isCurrent ? 'جارٍ الآن' : 'في الانتظار';
+    const desc = isDone ? '✅ تم' : isCurrent ? '⏳ جارٍ الآن' : 'في الانتظار';
     return `<div class="tl-item ${cls}">
       <div class="tl-title">${step.icon} ${step.label}</div>
       <div class="tl-desc">${desc}</div>
