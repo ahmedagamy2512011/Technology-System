@@ -369,6 +369,35 @@
   .required-docs ul { list-style: none; }
   .required-docs li { font-size: 12px; color: var(--dark); padding: 3px 0; }
   .required-docs li::before { content: '• '; color: #f97316; }
+
+  /* MY REQUESTS */
+  .my-requests-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--white);
+    color: var(--green);
+    border: 2px solid var(--green);
+    border-radius: 12px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-bottom: 16px;
+    transition: all 0.3s;
+  }
+  .my-requests-btn:hover { background: var(--green-pale); }
+  .request-history-item {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+    border: 1.5px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .request-history-item:hover { border-color: var(--green); background: var(--green-pale); }
+  .request-history-id { font-size: 15px; font-weight: 900; color: var(--green); font-family: monospace; }
+  .request-history-meta { font-size: 12px; color: var(--gray); margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -388,6 +417,24 @@
 
   <!-- FORM SECTION -->
   <div id="section-form" class="section active">
+
+    <!-- MY REQUESTS HISTORY -->
+    <div id="my-requests-section" style="display:none">
+      <div class="card">
+        <div class="card-title">📋 طلباتي السابقة</div>
+        <div id="my-requests-list"></div>
+        <button class="btn-primary" style="margin-top:8px" onclick="hideMyRequests()">
+          ➕ تقديم طلب جديد
+        </button>
+      </div>
+    </div>
+
+    <!-- MY REQUESTS BTN -->
+    <div id="my-requests-btn-container">
+      <button class="my-requests-btn" onclick="showMyRequests()">
+        📋 طلباتي السابقة
+      </button>
+    </div>
 
     <!-- ID UPLOAD -->
     <div class="card">
@@ -545,6 +592,69 @@
 // CONFIG
 // =====================
 const FIREBASE_PROJECT = 'petitions-wadi';
+const MY_REQUESTS_KEY = 'wadi_my_requests';
+
+function getMyRequests() {
+  try { return JSON.parse(localStorage.getItem(MY_REQUESTS_KEY) || '[]'); } catch(e) { return []; }
+}
+
+function saveMyRequest(req) {
+  const requests = getMyRequests();
+  const existing = requests.findIndex(r => r.id === req.id);
+  if (existing >= 0) requests[existing] = req;
+  else requests.unshift(req);
+  localStorage.setItem(MY_REQUESTS_KEY, JSON.stringify(requests.slice(0, 20)));
+}
+
+function showMyRequests() {
+  const requests = getMyRequests();
+  const section = document.getElementById('my-requests-section');
+  const list = document.getElementById('my-requests-list');
+  const btnContainer = document.getElementById('my-requests-btn-container');
+  
+  if (!requests.length) {
+    toast('لا توجد طلبات سابقة', '');
+    return;
+  }
+  
+  list.innerHTML = requests.map(r => `
+    <div class="request-history-item" onclick="viewRequest('${r.id}')">
+      <div class="request-history-id">${r.id}</div>
+      <div class="request-history-meta">
+        ${r.service} — ${r.center} — ${new Date(r.createdAt).toLocaleDateString('ar-EG')}
+      </div>
+      <div style="margin-top:6px">
+        <span class="status-badge status-${r.status === 'new' ? 'new' : r.status === 'done' ? 'done' : 'review'}" style="font-size:11px">
+          ${r.status === 'new' ? '📨 جديد' : r.status === 'done' ? '✅ منجز' : '⏳ قيد المعالجة'}
+        </span>
+      </div>
+    </div>
+  `).join('');
+  
+  section.style.display = 'block';
+  btnContainer.style.display = 'none';
+  // إخفاء باقي الفورم
+  document.querySelectorAll('#section-form .card, #docs-upload-card, #btn-submit, #submit-success').forEach(el => {
+    if (el.id !== 'my-requests-section') el.style.display = 'none';
+  });
+}
+
+function hideMyRequests() {
+  document.getElementById('my-requests-section').style.display = 'none';
+  document.getElementById('my-requests-btn-container').style.display = 'block';
+  document.querySelectorAll('#section-form .card').forEach(el => {
+    if (el.id !== 'my-requests-section') el.style.display = 'block';
+  });
+  document.getElementById('btn-submit').style.display = 'block';
+  document.getElementById('submit-success').style.display = 'none';
+}
+
+function viewRequest(id) {
+  // روح لتبويب متابعة الطلب وابحث عن الطلب
+  document.querySelectorAll('.tab')[1].click();
+  document.getElementById('s-request-id').value = id;
+  searchRequest();
+}
 const _a='AIzaSyBI',_b='vLyPkP34',_c='EiTCxvCt47IP4moxmJH0sZY';
 const GEMINI_KEY = _a+_b+_c;
 const BOT_TOKEN = '8757928092:AAF31wqeBDHXKkswZiYJIqAhL0S_d2h70OI';
@@ -901,6 +1011,13 @@ async function submitRequest() {
     document.getElementById('btn-submit').style.display = 'none';
     document.getElementById('submit-success').style.display = 'block';
     toast('✅ تم تقديم طلبك بنجاح', 'success');
+    // حفظ الطلب في سجل طلباتي
+    saveMyRequest({
+      id: requestId,
+      name, service, center, nid, phone,
+      status: 'new',
+      createdAt: now
+    });
 
   } catch(e) {
     toast('❌ حدث خطأ، حاول مرة أخرى', 'error');
