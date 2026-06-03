@@ -1065,7 +1065,12 @@ body {
             body: JSON.stringify({
               chat_id: chatId,
               text: message,
-              parse_mode: 'HTML'
+              parse_mode: 'HTML',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '🏠 القائمة الرئيسية', callback_data: 'main_menu' }]
+                ]
+              }
             })
           });
           const data = await res.json();
