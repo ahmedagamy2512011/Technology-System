@@ -995,29 +995,57 @@ body {
             }
             return raw;
           }).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-          // normalize أي docsFull items جاية بـ Firestore REST format من n8n
+          // deep parse لأي قيمة Firestore REST nested (stringValue / arrayValue / mapValue / booleanValue)
+          function parseFirestoreValue(v) {
+            if (v === null || v === undefined) return null;
+            if (typeof v !== 'object') return v;
+            if ('stringValue'  in v) return v.stringValue;
+            if ('integerValue' in v) return parseInt(v.integerValue);
+            if ('doubleValue'  in v) return v.doubleValue;
+            if ('booleanValue' in v) return v.booleanValue;
+            if ('nullValue'    in v) return null;
+            if ('arrayValue'   in v) return (v.arrayValue.values || []).map(parseFirestoreValue);
+            if ('mapValue'     in v) {
+              var out = {};
+              Object.keys(v.mapValue.fields || {}).forEach(function(k) {
+                out[k] = parseFirestoreValue(v.mapValue.fields[k]);
+              });
+              return out;
+            }
+            return v;
+          }
+
           requests.forEach(function(r) {
+            // normalize docsFull
             if (r.docsFull && Array.isArray(r.docsFull)) {
               r.docsFull = r.docsFull.map(function(d) {
-                // لو جاي كـ Firestore REST nested object
-                if (d && d.mapValue && d.mapValue.fields) {
-                  var f = d.mapValue.fields;
-                  return {
-                    name:       f.name       ? (f.name.stringValue       || '') : '',
-                    docName:    f.docName    ? (f.docName.stringValue    || '') : '',
-                    dataUrl:    f.dataUrl    ? (f.dataUrl.stringValue    || f.dataUrl.url?.stringValue || '') : '',
-                    url:        f.dataUrl    ? (f.dataUrl.stringValue    || '') : '',
-                    fileName:   f.fileName   ? (f.fileName.stringValue   || '') : '',
-                    fileType:   f.fileType   ? (f.fileType.stringValue   || '') : '',
-                    uploadedAt: f.uploadedAt ? (f.uploadedAt.stringValue || '') : '',
-                  };
+                if (d && d.mapValue && d.mapValue.fields) return parseFirestoreValue(d);
+                return d;
+              });
+              // كل item لازم يكون name واضح
+              r.docsFull = r.docsFull.map(function(d) {
+                if (typeof d === 'object' && d !== null) {
+                  d.name = d.name || d.docName || '';
+                  d.dataUrl = d.dataUrl || d.url || '';
                 }
                 return d;
               });
-              // تحديث docs array من docsFull
-              if (!r.docs || !r.docs.length) {
-                r.docs = r.docsFull.map(function(d){ return d.name || d.docName || ''; }).filter(Boolean);
-              }
+            }
+            // normalize docs array
+            if (r.docs && Array.isArray(r.docs)) {
+              r.docs = r.docs.map(function(d) {
+                return (d && typeof d === 'object') ? parseFirestoreValue(d) : d;
+              }).filter(Boolean);
+            }
+            // normalize missingDocs array
+            if (r.missingDocs && Array.isArray(r.missingDocs)) {
+              r.missingDocs = r.missingDocs.map(function(d) {
+                return (d && typeof d === 'object') ? parseFirestoreValue(d) : d;
+              }).filter(Boolean);
+            }
+            // لو docs فاضية، ابنيها من docsFull
+            if ((!r.docs || !r.docs.length) && r.docsFull && r.docsFull.length) {
+              r.docs = r.docsFull.map(function(d){ return d.name || d.docName || ''; }).filter(Boolean);
             }
           });
           callback(requests);
@@ -4142,8 +4170,11 @@ function openRequest(id) {
 
   // Build docs display using SERVICE_DOCS config
   const serviceDocs = SERVICE_DOCS[r.service] || [];
-  const uploadedNames = r.docs || [];
-  const missingNames = r.missingDocs || [];
+  // normalize docs وmissingDocs لو جاية كـ Firestore objects
+  const uploadedNames = (r.docs || []).map(function(d){ return typeof d === 'string' ? d : (d.stringValue || d.name || ''); });
+  const missingNames  = (r.missingDocs || []).map(function(d){ return typeof d === 'string' ? d : (d.stringValue || ''); });
+  r.docs = uploadedNames;
+  r.missingDocs = missingNames;
 
   const docsHtml = serviceDocs.map(doc => {
     const isUploaded = uploadedNames.includes(doc.name);
