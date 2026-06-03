@@ -995,6 +995,31 @@ body {
             }
             return raw;
           }).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+          // normalize أي docsFull items جاية بـ Firestore REST format من n8n
+          requests.forEach(function(r) {
+            if (r.docsFull && Array.isArray(r.docsFull)) {
+              r.docsFull = r.docsFull.map(function(d) {
+                // لو جاي كـ Firestore REST nested object
+                if (d && d.mapValue && d.mapValue.fields) {
+                  var f = d.mapValue.fields;
+                  return {
+                    name:       f.name       ? (f.name.stringValue       || '') : '',
+                    docName:    f.docName    ? (f.docName.stringValue    || '') : '',
+                    dataUrl:    f.dataUrl    ? (f.dataUrl.stringValue    || f.dataUrl.url?.stringValue || '') : '',
+                    url:        f.dataUrl    ? (f.dataUrl.stringValue    || '') : '',
+                    fileName:   f.fileName   ? (f.fileName.stringValue   || '') : '',
+                    fileType:   f.fileType   ? (f.fileType.stringValue   || '') : '',
+                    uploadedAt: f.uploadedAt ? (f.uploadedAt.stringValue || '') : '',
+                  };
+                }
+                return d;
+              });
+              // تحديث docs array من docsFull
+              if (!r.docs || !r.docs.length) {
+                r.docs = r.docsFull.map(function(d){ return d.name || d.docName || ''; }).filter(Boolean);
+              }
+            }
+          });
           callback(requests);
         });
       },
@@ -1059,8 +1084,16 @@ body {
           validRequests.forEach(function(r) {
             try {
               var existing = DB.getById(r.id);
-              if (!existing || new Date(r.updatedAt) >= new Date(existing.updatedAt || 0)) {
+              if (!existing) {
                 DB.save(r);
+              } else {
+                // قارن updatedAt أو لو docsFull في Firebase أكبر (مستندات رُفعت من البوت)
+                var firebaseNewer = new Date(r.updatedAt) > new Date(existing.updatedAt || 0);
+                var firebaseHasMoreDocs = (r.docsFull||[]).length > (existing.docsFull||[]).length;
+                var firebaseHasMoreSteps = (r.steps||[]).length > (existing.steps||[]).length;
+                if (firebaseNewer || firebaseHasMoreDocs || firebaseHasMoreSteps) {
+                  DB.save(r);
+                }
               }
             } catch(e) {}
           });
@@ -3586,6 +3619,20 @@ function managerViewRequest(id) {
     '</div>';
   }).join('');
 
+  // مستندات إضافية = موجودة في docsFull بس مش في docs ولا missingDocs
+  var requiredNames = (r.docs||[]).concat(r.missingDocs||[]);
+  var extraDocs = (r.docsFull||[]).filter(function(d) {
+    return !requiredNames.includes(d.name || d.docName || '');
+  });
+  var extraDocsHtml = extraDocs.map(function(d) {
+    var nm = d.name || d.docName || 'مستند';
+    var url = d.dataUrl || d.url || '';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:5px;margin-bottom:4px">' +
+      '<span>📎</span><span style="flex:1;font-size:11px">' + nm + '</span>' +
+      (url ? '<a href="'+url+'" target="_blank" download="'+nm+'" style="font-size:10px;color:var(--primary);padding:1px 6px;border:1px solid var(--border2);border-radius:4px;text-decoration:none">⬇️</a>' : '') +
+    '</div>';
+  }).join('');
+
   // مرفقات مراحل التنفيذ
   var stepDocsHtml = '';
   r.steps.forEach(function(st) {
@@ -3616,6 +3663,9 @@ function managerViewRequest(id) {
 
     // المستندات المطلوبة
     (reqDocs||missDocs ? '<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">📎 المستندات المطلوبة</div>' + reqDocs + missDocs + '</div>' : '') +
+
+    // مستندات إضافية من المواطن
+    (extraDocsHtml ? '<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">📎 مستندات إضافية (رفعها المواطن)</div>' + extraDocsHtml + '</div>' : '') +
 
     // مرفقات مراحل التنفيذ
     (stepDocsHtml ? '<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">📁 مستندات مراحل التنفيذ</div>' + stepDocsHtml + '</div>' : '') +
@@ -4187,7 +4237,28 @@ function openRequest(id) {
       <div>
         <div class="card" style="margin-bottom:14px">
           <div class="card-head"><h4>📎 المستندات المطلوبة</h4></div>
-          <div class="card-body">${docsHtml}</div>
+          <div class="card-body">
+            ${docsHtml}
+            ${(function(){
+              var required = (r.docs||[]).concat(r.missingDocs||[]);
+              var extras = (r.docsFull||[]).filter(function(d){
+                return !required.includes(d.name||d.docName||'');
+              });
+              if(!extras.length) return '';
+              return '<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border)">' +
+                '<div style="font-size:10px;font-weight:700;color:#1d4ed8;margin-bottom:6px">📎 مستندات إضافية رفعها المواطن</div>' +
+                extras.map(function(d){
+                  var nm = d.name||d.docName||'مستند';
+                  var url = d.dataUrl||d.url||'';
+                  return '<div class="doc-row" style="background:#eff6ff;border-color:#bfdbfe">' +
+                    '<span class="doc-icon">📎</span>' +
+                    '<span class="doc-name">' + nm + '</span>' +
+                    (url ? '<a href="'+url+'" target="_blank" download="'+nm+'" style="font-size:10px;color:var(--primary);padding:2px 7px;border:1px solid var(--border2);border-radius:4px;text-decoration:none;white-space:nowrap">⬇️ تحميل</a>' : '') +
+                  '</div>';
+                }).join('') +
+              '</div>';
+            })()}
+          </div>
         </div>
         ${(()=>{
           const stepWithDocs = r.steps.filter(st=>st.docs&&st.docs.length>0);
