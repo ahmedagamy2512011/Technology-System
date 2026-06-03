@@ -518,6 +518,21 @@
       <div id="doc-upload-items"></div>
     </div>
 
+    <!-- مستندات إضافية اختيارية -->
+    <div class="card" id="extra-docs-card" style="display:none">
+      <div class="card-title">📎 مستندات إضافية (اختياري)</div>
+      <p style="font-size:13px;color:var(--gray);margin-bottom:16px">يمكنك إرفاق أي مستندات إضافية قد تدعم طلبك — هذا القسم اختياري ولن يؤثر على تقديم الطلب</p>
+      <div id="extra-doc-list" style="margin-bottom:12px"></div>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:2px dashed #93c5fd;border-radius:10px;cursor:pointer;background:#eff6ff;transition:all .2s" id="extra-upload-area" onclick="document.getElementById('extra-doc-input').click()">
+        <input type="file" id="extra-doc-input" accept="image/*,.pdf" style="display:none" onchange="handleExtraDoc(this)">
+        <span style="font-size:20px">➕</span>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#1d4ed8">إضافة مستند آخر</div>
+          <div style="font-size:11px;color:#64748b">صور أو PDF — حتى 10MB</div>
+        </div>
+      </label>
+    </div>
+
     <!-- SUBMIT -->
     <button class="btn-primary" id="btn-submit" onclick="submitRequest()">
       ✅ تقديم الطلب
@@ -837,6 +852,7 @@ async function extractFromId() {
 // REQ DOCS UPLOAD
 // =====================
 let reqDocs = {}; // { docName: File }
+let extraDocs = []; // [{name, file}] مستندات إضافية اختيارية
 
 function updateDocs() {
   const service = document.getElementById('f-service').value;
@@ -851,9 +867,11 @@ function updateDocs() {
     container.style.display = 'block';
     renderDocUploadItems(docs);
     uploadCard.style.display = 'block';
+    document.getElementById('extra-docs-card').style.display = 'block';
   } else {
     container.style.display = 'none';
     uploadCard.style.display = 'none';
+    document.getElementById('extra-docs-card').style.display = 'none';
   }
 }
 
@@ -874,6 +892,37 @@ function renderDocUploadItems(docs) {
       }
     </div>`;
   }).join('');
+}
+
+function handleExtraDoc(input) {
+  const file = input.files[0];
+  if (!file) return;
+  // اطلب اسم المستند من المستخدم
+  const docName = prompt('اسم المستند الإضافي (مثال: صورة قديمة، موافقة خطية...):', file.name.replace(/\.[^.]+$/, ''));
+  if (!docName || !docName.trim()) { input.value = ''; return; }
+  extraDocs.push({ name: docName.trim(), file });
+  renderExtraDocs();
+  input.value = '';
+}
+
+function renderExtraDocs() {
+  const list = document.getElementById('extra-doc-list');
+  if (!list) return;
+  if (!extraDocs.length) { list.innerHTML = ''; return; }
+  list.innerHTML = extraDocs.map((d, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;margin-bottom:8px;background:#eff6ff;border:1.5px solid #93c5fd">
+      <span style="font-size:18px">📎</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:#1d4ed8">${d.name}</div>
+        <div style="font-size:11px;color:#64748b">${d.file.name}</div>
+      </div>
+      <span onclick="removeExtraDoc(${i})" style="cursor:pointer;color:#ef4444;font-size:18px;padding:0 4px">✕</span>
+    </div>`).join('');
+}
+
+function removeExtraDoc(idx) {
+  extraDocs.splice(idx, 1);
+  renderExtraDocs();
 }
 
 function handleDocFile(e, docName, idx) {
@@ -975,6 +1024,17 @@ async function submitRequest() {
     }
   }
 
+  // رفع المستندات الإضافية على Cloudinary
+  const extraUploaded = await Promise.all(extraDocs.map(async (d) => {
+    try {
+      const url = await uploadToCloudinary(d.file, folder);
+      return { name: d.name, docName: d.name, url, type: d.file.type, isExtra: true };
+    } catch(e) {
+      const dataUrl = await compressImage(d.file);
+      return { name: d.name, docName: d.name, url: dataUrl, type: d.file.type, isExtra: true };
+    }
+  }));
+
   // جلب chatId من URL لو موجود
   const urlParams = new URLSearchParams(window.location.search);
   const telegramChatId = urlParams.get('chat_id') || '';
@@ -995,12 +1055,13 @@ async function submitRequest() {
     updatedAt: { stringValue: now },
     missingDocs: { arrayValue: { values: missingDocs.map(d => ({ stringValue: d })) } },
     docs: { arrayValue: { values: docsUploaded.map(d => ({ stringValue: d.docName })) } },
-    docsFull: { arrayValue: { values: docsUploaded.map(d => ({ mapValue: { fields: {
+    docsFull: { arrayValue: { values: [...docsUploaded, ...extraUploaded].map(d => ({ mapValue: { fields: {
       name: { stringValue: d.docName },
       fileName: { stringValue: d.name },
       dataUrl: { stringValue: d.url },
       fileType: { stringValue: d.type },
-      uploadedAt: { stringValue: now }
+      uploadedAt: { stringValue: now },
+      ...(d.isExtra ? { isExtra: { booleanValue: true } } : {})
     } } })) } },
     steps: { arrayValue: { values: [
       { mapValue: { fields: { s: { stringValue: 'received' }, t: { stringValue: now }, by: { stringValue: 'بوابة المواطن' } } } },
