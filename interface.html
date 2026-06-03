@@ -956,7 +956,45 @@ body {
       // مراقبة التغييرات real-time
       watchRequests(callback) {
         return onSnapshot(collection(db, 'requests'), snap => {
-          const requests = snap.docs.map(d => d.data()).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+          const requests = snap.docs.map(d => {
+            const raw = d.data();
+            // لو البيانات من REST API بتبقى nested في fields
+            if (raw.fields) {
+              function parseValue(v) {
+                if (!v) return '';
+                if (v.stringValue !== undefined) return v.stringValue;
+                if (v.integerValue !== undefined) return v.integerValue;
+                if (v.booleanValue !== undefined) return v.booleanValue;
+                if (v.arrayValue !== undefined) {
+                  return (v.arrayValue.values || []).map(item => {
+                    if (item.stringValue !== undefined) return item.stringValue;
+                    if (item.mapValue !== undefined) {
+                      const m = {};
+                      for (const [mk, mv] of Object.entries(item.mapValue.fields || {})) {
+                        m[mk] = parseValue(mv);
+                      }
+                      return m;
+                    }
+                    return item;
+                  });
+                }
+                if (v.mapValue !== undefined) {
+                  const m = {};
+                  for (const [mk, mv] of Object.entries(v.mapValue.fields || {})) {
+                    m[mk] = parseValue(mv);
+                  }
+                  return m;
+                }
+                return v;
+              }
+              const obj = {};
+              for (const [k, v] of Object.entries(raw.fields)) {
+                obj[k] = parseValue(v);
+              }
+              return obj;
+            }
+            return raw;
+          }).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
           callback(requests);
         });
       },
@@ -966,7 +1004,7 @@ body {
       // المواطن محتاج يبدأ محادثة مع البوت أولاً
       async sendTelegramNotif(chatId, message) {
         if (!chatId) { console.warn('No chat ID'); return; }
-        const BOT_TOKEN = '8358958787:AAGSCUzt8pIihu06Txh_Dmpiq7Da7rMXCPA';
+        const BOT_TOKEN = '8757928092:AAF31wqeBDHXKkswZiYJIqAhL0S_d2h70OI';
         try {
           const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
             method: 'POST',
@@ -1012,14 +1050,24 @@ body {
     // Real-time listener — يحدّث الواجهة لما يتغير شيء في Firebase من أي جهاز
     window.FirebaseDB.watchRequests(function(requests) {
       if (!requests || !requests.length) return;
-      // حدّث localStorage بأحدث بيانات من Firebase
-      try {
-        localStorage.setItem('wj_requests', JSON.stringify(requests));
-      } catch(e) {}
-      // أعد رسم القائمة لو الواجهة شغالة
-      if (typeof buildRequestsList === 'function') buildRequestsList();
-      if (typeof updateSubbarCounts === 'function') updateSubbarCounts();
-      if (typeof refreshAll === 'function') refreshAll();
+      var validRequests = requests.filter(function(r) {
+        return r && r.id && r.name && r.status;
+      });
+      if (!validRequests.length) return;
+      setTimeout(function() {
+        if (typeof DB !== 'undefined' && DB.save) {
+          validRequests.forEach(function(r) {
+            try {
+              var existing = DB.getById(r.id);
+              if (!existing || new Date(r.updatedAt) >= new Date(existing.updatedAt || 0)) {
+                DB.save(r);
+              }
+            } catch(e) {}
+          });
+          if (typeof buildRequestsList === 'function') buildRequestsList();
+          if (typeof updateSubbarCounts === 'function') updateSubbarCounts();
+        }
+      }, 500);
     });
 
     console.log('✅ Firebase connected — petitions-wadi');
