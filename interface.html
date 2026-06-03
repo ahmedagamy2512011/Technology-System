@@ -3655,9 +3655,18 @@ function managerViewRequest(id) {
   }).join('');
 
   // مستندات إضافية = موجودة في docsFull بس مش في docs ولا missingDocs
-  var requiredNames = (r.docs||[]).concat(r.missingDocs||[]);
+  var SERVICE_DOCS_MV = {
+    'توصيل مرافق': ['بطاقة الرقم القومي','عقد الملكية أو الإيجار','رسم كروكي للموقع','إيصال سداد الرسوم'],
+    'ترخيص بناء': ['بطاقة الرقم القومي','سند ملكية الأرض','رسم هندسي معتمد','شهادة عدم ممانعة الجيران','إيصال سداد الرسوم'],
+    'دعم زراعي': ['بطاقة الرقم القومي','بطاقة الحيازة الزراعية','كشف حساب بنكي'],
+    'شكوى / بلاغ': ['بطاقة الرقم القومي','وصف مفصل للشكوى'],
+    'شهادة / وثيقة': ['بطاقة الرقم القومي','طلب مكتوب بالغرض','إيصال سداد الرسوم']
+  };
+  var serviceDocsMV = SERVICE_DOCS_MV[r.service] || [];
   var extraDocs = (r.docsFull||[]).filter(function(d) {
-    return !requiredNames.includes(d.name || d.docName || '');
+    if(d.isExtra === true) return true;
+    var nm = d.name || d.docName || '';
+    return nm && !serviceDocsMV.includes(nm);
   });
   var extraDocsHtml = extraDocs.map(function(d) {
     var nm = d.name || d.docName || 'مستند';
@@ -4284,9 +4293,21 @@ function openRequest(id) {
           <div class="card-body">
             ${docsHtml}
             ${(function(){
-              var required = (r.docs||[]).concat(r.missingDocs||[]);
+              var requiredNames = (r.missingDocs||[]);
+              // المستندات الإضافية: إما مُعلّمة بـ isExtra أو اسمها مش في المستندات المطلوبة الأصلية للخدمة
+              var serviceDocs = (WORKFLOWS[r.service] ? [] : []).concat(
+                Object.values({
+                  'توصيل مرافق': ['بطاقة الرقم القومي','عقد الملكية أو الإيجار','رسم كروكي للموقع','إيصال سداد الرسوم'],
+                  'ترخيص بناء': ['بطاقة الرقم القومي','سند ملكية الأرض','رسم هندسي معتمد','شهادة عدم ممانعة الجيران','إيصال سداد الرسوم'],
+                  'دعم زراعي': ['بطاقة الرقم القومي','بطاقة الحيازة الزراعية','كشف حساب بنكي'],
+                  'شكوى / بلاغ': ['بطاقة الرقم القومي','وصف مفصل للشكوى'],
+                  'شهادة / وثيقة': ['بطاقة الرقم القومي','طلب مكتوب بالغرض','إيصال سداد الرسوم']
+                }[r.service] || [])
+              );
               var extras = (r.docsFull||[]).filter(function(d){
-                return !required.includes(d.name||d.docName||'');
+                if(d.isExtra === true) return true;
+                var nm = d.name||d.docName||'';
+                return nm && !serviceDocs.includes(nm);
               });
               if(!extras.length) return '';
               return '<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border)">' +
