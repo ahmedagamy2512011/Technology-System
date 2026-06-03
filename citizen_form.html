@@ -579,20 +579,24 @@
         <div class="timeline" id="request-timeline"></div>
       </div>
 
-      <!-- UPLOAD DOCS -->
+      <!-- DOCS STATUS + UPLOAD -->
       <div class="card" id="upload-section" style="display:none">
-        <div class="card-title">📎 رفع مستندات</div>
-        <p style="font-size:13px;color:var(--gray);margin-bottom:12px">يمكنك رفع المستندات الناقصة مباشرة من هنا</p>
-        <div class="doc-upload-area" onclick="document.getElementById('doc-file').click()">
-          <input type="file" id="doc-file" accept="image/*,.pdf" onchange="handleDocUpload(event)" multiple>
-          <div style="font-size:32px;margin-bottom:8px">📎</div>
-          <p style="font-size:14px;font-weight:600;color:var(--gray)">اضغط لرفع المستندات</p>
-          <small style="color:var(--gray)">صور أو PDF</small>
+        <div class="card-title">📎 المستندات</div>
+        <!-- قائمة المستندات المطلوبة -->
+        <div id="docs-status-list" style="margin-bottom:16px"></div>
+        <!-- قسم المستندات الإضافية -->
+        <div style="padding-top:12px;border-top:1px dashed var(--border)">
+          <div style="font-size:12px;font-weight:700;color:var(--gray);margin-bottom:8px">📎 مستندات إضافية (اختياري)</div>
+          <div id="inquiry-extra-list" style="margin-bottom:8px"></div>
+          <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:2px dashed #93c5fd;border-radius:10px;cursor:pointer;background:#eff6ff">
+            <input type="file" id="inquiry-extra-input" accept="image/*,.pdf" style="display:none" onchange="handleInquiryExtraDoc(this)">
+            <span style="font-size:18px">➕</span>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#1d4ed8">إرفاق مستند إضافي</div>
+              <div style="font-size:11px;color:#64748b">صورة مع كتابة الاسم في الـ caption أو اختر ثم أدخل الاسم</div>
+            </div>
+          </label>
         </div>
-        <div id="uploaded-docs" style="margin-top:12px"></div>
-        <button class="btn-primary" id="btn-send-docs" style="display:none;margin-top:12px" onclick="sendDocs()">
-          📤 إرسال المستندات
-        </button>
       </div>
 
     </div>
@@ -1186,21 +1190,131 @@ function renderRequestStatus(fields) {
   }).join('');
   document.getElementById('request-timeline').innerHTML = timelineHtml;
 
-  // Show upload section if returned/incomplete
-  const showUpload = ['returned', 'incomplete', 'awaiting_originals'].includes(status);
-  document.getElementById('upload-section').style.display = showUpload ? 'block' : 'none';
+  // بناء قسم المستندات
+  const SERVICE_DOCS = {
+    'توصيل مرافق': ['بطاقة الرقم القومي','عقد الملكية أو الإيجار','رسم كروكي للموقع','إيصال سداد الرسوم'],
+    'ترخيص بناء': ['بطاقة الرقم القومي','سند ملكية الأرض','رسم هندسي معتمد','شهادة عدم ممانعة الجيران','إيصال سداد الرسوم'],
+    'دعم زراعي': ['بطاقة الرقم القومي','بطاقة الحيازة الزراعية','كشف حساب بنكي'],
+    'شكوى / بلاغ': ['بطاقة الرقم القومي','وصف مفصل للشكوى'],
+    'شهادة / وثيقة': ['بطاقة الرقم القومي','طلب مكتوب بالغرض','إيصال سداد الرسوم']
+  };
+  const requiredDocs = SERVICE_DOCS[service] || [];
+  const uploadedDocs = (fields.docs?.arrayValue?.values || []).map(d => d?.stringValue || '').filter(Boolean);
+  const missingDocs  = (fields.missingDocs?.arrayValue?.values || []).map(d => d?.stringValue || '').filter(Boolean);
+  const docsFull     = (fields.docsFull?.arrayValue?.values || []).map(d => {
+    const f = d?.mapValue?.fields || {};
+    return { name: f.name?.stringValue || '', dataUrl: f.dataUrl?.stringValue || '', isExtra: f.isExtra?.booleanValue || false };
+  });
+  const extraDocs = docsFull.filter(d => d.isExtra || (d.name && !requiredDocs.includes(d.name)));
+
+  // عرض المستندات المطلوبة
+  const docsStatusHtml = requiredDocs.map(doc => {
+    const uploaded = uploadedDocs.includes(doc);
+    const missing  = missingDocs.includes(doc);
+    const bg    = uploaded ? '#f0fdf4' : missing ? '#fef2f2' : '#fffbeb';
+    const border= uploaded ? '#86efac' : missing ? '#fca5a5' : '#fde68a';
+    const icon  = uploaded ? '✅' : missing ? '❌' : '⏳';
+    const label = uploaded ? 'تم الرفع' : missing ? 'ناقص — يرجى الرفع' : 'مطلوب';
+    const color = uploaded ? '#166534' : missing ? '#991b1b' : '#78350f';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:${bg};border:1.5px solid ${border};border-radius:10px;margin-bottom:8px">
+      <span style="font-size:18px">${icon}</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:${color}">${doc}</div>
+        <div style="font-size:11px;color:#64748b">${label}</div>
+      </div>
+      ${!uploaded ? `<label style="cursor:pointer;padding:6px 12px;background:var(--green);color:white;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap">
+        <input type="file" accept="image/*,.pdf" style="display:none" onchange="uploadMissingDoc(this,'${doc}')">
+        📤 رفع
+      </label>` : ''}
+    </div>`;
+  }).join('');
+
+  document.getElementById('docs-status-list').innerHTML = docsStatusHtml;
+
+  // عرض المستندات الإضافية المرفوعة
+  const extraHtml = extraDocs.length ? extraDocs.map(d =>
+    `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;margin-bottom:6px">
+      <span>📎</span>
+      <span style="flex:1;font-size:13px;color:#1d4ed8">${d.name}</span>
+      ${d.dataUrl ? `<a href="${d.dataUrl}" target="_blank" style="font-size:11px;color:var(--green)">⬇️ تحميل</a>` : ''}
+    </div>`
+  ).join('') : '';
+  document.getElementById('inquiry-extra-list').innerHTML = extraHtml;
+
+  // أظهر القسم دايماً
+  document.getElementById('upload-section').style.display = 'block';
 }
 
 // =====================
-// UPLOAD DOCS
+// UPLOAD DOCS (من صفحة الاستعلام)
 // =====================
-function handleDocUpload(e) {
-  uploadedFiles = Array.from(e.target.files);
-  const container = document.getElementById('uploaded-docs');
-  container.innerHTML = uploadedFiles.map(f =>
-    `<div class="doc-item">${f.name}</div>`
-  ).join('');
-  document.getElementById('btn-send-docs').style.display = uploadedFiles.length ? 'block' : 'none';
+async function uploadMissingDoc(input, docName) {
+  const file = input.files[0];
+  if (!file || !currentRequestId) return;
+  toast('📤 جارٍ رفع: ' + docName, '');
+  try {
+    const folder = 'wadi_docs/' + currentRequestId;
+    const url = await uploadToCloudinary(file, folder);
+    await saveDocToFirebase(currentRequestId, docName, url, file.type, false);
+    toast('✅ تم رفع: ' + docName, 'success');
+    searchRequest(); // حدّث العرض
+  } catch(e) {
+    toast('❌ فشل الرفع — حاول مجدداً', 'error');
+  }
+}
+
+async function handleInquiryExtraDoc(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const docName = prompt('اسم المستند الإضافي:', file.name.replace(/\.[^.]+$/, ''));
+  if (!docName?.trim()) { input.value = ''; return; }
+  toast('📤 جارٍ رفع: ' + docName.trim(), '');
+  try {
+    const folder = 'wadi_docs/' + currentRequestId;
+    const url = await uploadToCloudinary(file, folder);
+    await saveDocToFirebase(currentRequestId, docName.trim(), url, file.type, true);
+    toast('✅ تم رفع: ' + docName.trim(), 'success');
+    input.value = '';
+    searchRequest();
+  } catch(e) {
+    toast('❌ فشل الرفع — حاول مجدداً', 'error');
+  }
+}
+
+async function saveDocToFirebase(requestId, docName, url, fileType, isExtra) {
+  const now = new Date().toISOString();
+  const getUrl = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}/databases/(default)/documents/requests/${requestId}`;
+  const existing = await fetch(getUrl).then(r => r.json());
+  const raw = existing.fields || {};
+
+  const existingDocsFull = raw.docsFull?.arrayValue?.values || [];
+  const filtered = existingDocsFull.filter(d => (d?.mapValue?.fields?.name?.stringValue || '') !== docName);
+  const newDoc = { mapValue: { fields: {
+    name:       { stringValue: docName },
+    dataUrl:    { stringValue: url },
+    fileType:   { stringValue: fileType || '' },
+    uploadedAt: { stringValue: now },
+    ...(isExtra ? { isExtra: { booleanValue: true } } : {})
+  }}};
+  filtered.push(newDoc);
+
+  const existingMissing = raw.missingDocs?.arrayValue?.values || [];
+  const updatedMissing = isExtra ? existingMissing : existingMissing.filter(d => (d?.stringValue || '') !== docName);
+
+  const existingDocsArr = raw.docs?.arrayValue?.values || [];
+  const alreadyIn = existingDocsArr.some(d => (d?.stringValue || '') === docName);
+  const updatedDocs = alreadyIn ? existingDocsArr : [...existingDocsArr, { stringValue: docName }];
+
+  await fetch(getUrl + '?updateMask.fieldPaths=docsFull&updateMask.fieldPaths=docs&updateMask.fieldPaths=missingDocs&updateMask.fieldPaths=updatedAt', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: {
+      updatedAt:   { stringValue: now },
+      docsFull:    { arrayValue: { values: filtered } },
+      docs:        { arrayValue: { values: updatedDocs } },
+      missingDocs: { arrayValue: { values: updatedMissing } }
+    }})
+  });
 }
 
 async function sendDocs() {
