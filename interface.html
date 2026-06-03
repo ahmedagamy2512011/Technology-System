@@ -1115,12 +1115,19 @@ body {
               if (!existing) {
                 DB.save(r);
               } else {
-                // قارن updatedAt أو لو docsFull في Firebase أكبر (مستندات رُفعت من البوت)
                 var firebaseNewer = new Date(r.updatedAt) > new Date(existing.updatedAt || 0);
                 var firebaseHasMoreDocs = (r.docsFull||[]).length > (existing.docsFull||[]).length;
                 var firebaseHasMoreSteps = (r.steps||[]).length > (existing.steps||[]).length;
-                if (firebaseNewer || firebaseHasMoreDocs || firebaseHasMoreSteps) {
+                // قارن محتوى docsFull — لو فيه URLs جديدة في Firebase مش موجودة locally
+                var existingUrls = (existing.docsFull||[]).map(function(d){ return d.dataUrl||d.url||''; }).filter(Boolean);
+                var firebaseUrls = (r.docsFull||[]).map(function(d){ return d.dataUrl||d.url||''; }).filter(Boolean);
+                var firebaseHasNewUrl = firebaseUrls.some(function(u){ return u && !existingUrls.includes(u); });
+                if (firebaseNewer || firebaseHasMoreDocs || firebaseHasMoreSteps || firebaseHasNewUrl) {
                   DB.save(r);
+                  // لو الطلب المفتوح حالياً هو ده — حدّثه تلقائياً
+                  if (currentRequestId === r.id) {
+                    openRequest(r.id);
+                  }
                 }
               }
             } catch(e) {}
