@@ -4267,7 +4267,13 @@ function openRequest(id) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <div>
         <div class="card" style="margin-bottom:14px">
-          <div class="card-head"><h4>📎 المستندات المطلوبة</h4></div>
+          <div class="card-head">
+            <h4>📎 المستندات المطلوبة</h4>
+            <label style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:4px 10px;border:1px solid #93c5fd;border-radius:6px;background:#eff6ff;color:#1d4ed8;font-weight:600;white-space:nowrap">
+              <input type="file" accept="image/*,.pdf" style="display:none" onchange="attachExtraDoc(this,'${r.id}')">
+              ➕ إرفاق مستند إضافي
+            </label>
+          </div>
           <div class="card-body">
             ${docsHtml}
             ${(function(){
@@ -4277,13 +4283,18 @@ function openRequest(id) {
               });
               if(!extras.length) return '';
               return '<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border)">' +
-                '<div style="font-size:10px;font-weight:700;color:#1d4ed8;margin-bottom:6px">📎 مستندات إضافية رفعها المواطن</div>' +
+                '<div style="font-size:10px;font-weight:700;color:#1d4ed8;margin-bottom:6px">📎 مستندات إضافية</div>' +
                 extras.map(function(d){
                   var nm = d.name||d.docName||'مستند';
                   var url = d.dataUrl||d.url||'';
+                  var who = d.uploadedBy ? ' — ' + d.uploadedBy : '';
+                  var when = d.uploadedAt ? ' — ' + fmt(d.uploadedAt) : '';
                   return '<div class="doc-row" style="background:#eff6ff;border-color:#bfdbfe">' +
                     '<span class="doc-icon">📎</span>' +
-                    '<span class="doc-name">' + nm + '</span>' +
+                    '<div style="flex:1;min-width:0">' +
+                      '<div class="doc-name">' + nm + '</div>' +
+                      '<div style="font-size:9px;color:var(--text3)">' + who + when + '</div>' +
+                    '</div>' +
                     (url ? '<a href="'+url+'" target="_blank" download="'+nm+'" style="font-size:10px;color:var(--primary);padding:2px 7px;border:1px solid var(--border2);border-radius:4px;text-decoration:none;white-space:nowrap">⬇️ تحميل</a>' : '') +
                   '</div>';
                 }).join('') +
@@ -4990,6 +5001,58 @@ function sendReturnNotif() {
     'السيد/ة ' + r.name + ' — رقم الطلب: ' + id + '\n\n' + msg;
   document.getElementById('modal-citizen-notif').classList.add('open');
   openRequest(id);
+}
+
+function attachExtraDoc(input, requestId) {
+  var file = input.files[0];
+  if (!file) return;
+  var docName = prompt('اسم المستند الإضافي:', file.name.replace(/\.[^.]+$/, ''));
+  if (!docName || !docName.trim()) { input.value = ''; return; }
+  docName = docName.trim();
+
+  var r = DB.getById(requestId);
+  if (!r) return;
+
+  toast('info', '⏳ جارٍ الرفع...', docName);
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var dataUrl = e.target.result;
+    var now = new Date().toISOString();
+    if (!r.docsFull) r.docsFull = [];
+
+    // أضف المستند للـ docsFull
+    r.docsFull.push({
+      name: docName,
+      dataUrl: dataUrl,
+      fileName: file.name,
+      fileType: file.type,
+      uploadedAt: now,
+      uploadedBy: currentEmployee,
+      isExtra: true
+    });
+
+    // سجّل في الـ steps
+    r.steps.push({
+      s: r.status,
+      t: now,
+      by: currentEmployee,
+      note: '📎 مستند إضافي أُرفق — ' + docName
+    });
+
+    r.updatedAt = now;
+    DB.save(r);
+
+    // حفظ في Firebase لو متاح
+    if (window.FirebaseDB && FirebaseDB.saveRequest) {
+      FirebaseDB.saveRequest(r);
+    }
+
+    toast('success', '✅ تم الإرفاق', docName);
+    input.value = '';
+    openRequest(requestId);
+  };
+  reader.readAsDataURL(file);
 }
 
 function notifyMissing(id) {
