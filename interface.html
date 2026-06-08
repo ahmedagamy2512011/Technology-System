@@ -1739,6 +1739,8 @@ body {
     <div style="margin-bottom:16px">
       <h2 style="font-size:18px; font-weight:700">التقارير والإحصائيات</h2>
       <p style="font-size:12px; color:var(--text3); margin-top:2px">ملخص شامل لأداء المنظومة</p>
+
+      <div id="complaints-report-stats" style="margin-top:16px"></div>
     </div>
 
     <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:16px">
@@ -6904,6 +6906,51 @@ function clearNotifs() {
 // REPORTS
 // ============================================================
 function buildReportTable() {
+  // إحصائيات الشكاوى
+  loadComplaints().then(function(complaints) {
+    var total = complaints.length;
+    var newC = complaints.filter(function(c){ return c.status === 'new'; }).length;
+    var assigned = complaints.filter(function(c){ return c.status === 'assigned'; }).length;
+    var resolved = complaints.filter(function(c){ return c.status === 'resolved'; }).length;
+    var closed = complaints.filter(function(c){ return c.status === 'closed'; }).length;
+    var late = complaints.filter(function(c){
+      if (c.status === 'closed') return false;
+      return (Date.now() - new Date(c.updatedAt || c.createdAt).getTime()) / 36e5 > 48;
+    }).length;
+
+    var statsEl = document.getElementById('complaints-report-stats');
+    if (statsEl) {
+      statsEl.innerHTML =
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">' +
+          '<div style="background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:12px;text-align:center">' +
+            '<div style="font-size:24px;font-weight:700;color:var(--primary)">' + total + '</div>' +
+            '<div style="font-size:11px;color:var(--text3)">إجمالي الشكاوى</div>' +
+          '</div>' +
+          '<div style="background:#FFF3CD;border:0.5px solid #ffc107;border-radius:10px;padding:12px;text-align:center">' +
+            '<div style="font-size:24px;font-weight:700;color:#856404">' + (newC + assigned) + '</div>' +
+            '<div style="font-size:11px;color:#856404">قيد المعالجة</div>' +
+          '</div>' +
+          '<div style="background:#FCEBEB;border:0.5px solid #F7C1C1;border-radius:10px;padding:12px;text-align:center">' +
+            '<div style="font-size:24px;font-weight:700;color:#791F1F">' + late + '</div>' +
+            '<div style="font-size:11px;color:#791F1F">متأخرة +48 ساعة</div>' +
+          '</div>' +
+          '<div style="background:#D4EDDA;border:0.5px solid #c3e6cb;border-radius:10px;padding:12px;text-align:center">' +
+            '<div style="font-size:24px;font-weight:700;color:#155724">' + closed + '</div>' +
+            '<div style="font-size:11px;color:#155724">مغلقة</div>' +
+          '</div>' +
+          '<div style="background:#D1ECF1;border:0.5px solid #bee5eb;border-radius:10px;padding:12px;text-align:center">' +
+            '<div style="font-size:24px;font-weight:700;color:#0c5460">' + resolved + '</div>' +
+            '<div style="font-size:11px;color:#0c5460">بانتظار القرار</div>' +
+          '</div>' +
+          '<div style="background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:12px;text-align:center">' +
+            '<div style="font-size:24px;font-weight:700;color:var(--text)">' + assigned + '</div>' +
+            '<div style="font-size:11px;color:var(--text3)">محالة</div>' +
+          '</div>' +
+        '</div>';
+    }
+  });
+
+
   var rptPct = document.getElementById('rpt-pct');
   var s = DB.getStats();
   if (rptPct) rptPct.textContent = (s.total ? Math.round(s.done/s.total*100) : 0) + '%';
@@ -7186,10 +7233,16 @@ async function buildComplaintsList() {
   var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager';
   console.log('isAdmin:', isAdmin, 'CURRENT_USER:', CURRENT_USER ? CURRENT_USER.role : 'null');
   if (!isAdmin) {
-    // الموظف يشوف بس الشكاوى المحالة لقسمه — الجديدة (assignedDept='') للمدير بس
+    // منطق الفلترة حسب الحالة:
+    // new      → مدير بس
+    // assigned → الجهة المحالة إليها بس
+    // resolved → مدير بس (رجعت للاعتماد)
+    // closed   → مدير بس
     all = all.filter(function(c) {
-      if (!c.assignedDept) return false; // جديدة = للمدير بس
-      return c.assignedDept === (CURRENT_USER ? CURRENT_USER.dept : '');
+      if (c.status === 'assigned') {
+        return c.assignedDept === (CURRENT_USER ? CURRENT_USER.dept : '');
+      }
+      return false; // new, resolved, closed = مدير بس
     });
   }
 
@@ -7277,8 +7330,24 @@ async function openComplaint(id) {
       '</div>' +
 
       '<div style="background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">' +
-        '<div style="font-size:11px;color:var(--text3);margin-bottom:4px">نوع الشكوى</div>' +
-        '<div style="font-size:14px;font-weight:600;color:var(--text)">' + (c.type || '') + '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+          '<div>' +
+            '<div style="font-size:10px;color:var(--text3);margin-bottom:2px">نوع الشكوى</div>' +
+            '<div style="font-size:13px;font-weight:600;color:var(--text)">' + (c.type || '—') + '</div>' +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:10px;color:var(--text3);margin-bottom:2px">اسم المواطن</div>' +
+            '<div style="font-size:13px;font-weight:600;color:var(--text)">' + (c.name || '—') + '</div>' +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:10px;color:var(--text3);margin-bottom:2px">رقم الهاتف</div>' +
+            '<div style="font-size:13px;font-weight:600;color:var(--text);direction:ltr;text-align:right">' + (c.phone || '—') + '</div>' +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:10px;color:var(--text3);margin-bottom:2px">تاريخ التقديم</div>' +
+            '<div style="font-size:11px;color:var(--text2)">' + (c.createdAt ? new Date(c.createdAt).toLocaleDateString("ar-EG") : '—') + '</div>' +
+          '</div>' +
+        '</div>' +
       '</div>' +
 
       '<div style="background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">' +
@@ -7286,7 +7355,12 @@ async function openComplaint(id) {
         '<div style="font-size:13px;color:var(--text);line-height:1.7">' + (c.text || '') + '</div>' +
       '</div>' +
 
-      (c.assignedDept ? '<div style="background:#FFF3CD;border:0.5px solid #ffc107;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#856404">📋 محالة إلى: <b>' + c.assignedDept + '</b></div>' : '') +
+      (c.assignedDept ? (
+        '<div style="background:#FFF3CD;border:0.5px solid #ffc107;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#856404;display:flex;align-items:center;justify-content:space-between">' +
+          '<span>📋 محالة إلى: <b>' + c.assignedDept + '</b></span>' +
+          (isAdmin ? '<button onclick="urgentComplaint(\'' + c.id + '\')" style="background:#e53e3e;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-family:Cairo,sans-serif;cursor:pointer;font-weight:700">⚡ استعجال</button>' : '') +
+        '</div>'
+      ) : '') +
 
       '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">سجل الأحداث</div>' +
       '<div class="complaint-steps">' + stepsHTML + '</div>' +
@@ -7344,10 +7418,30 @@ async function checkLateComplaints() {
   if (!CURRENT_USER || CURRENT_USER.role !== 'manager') return;
   var all = await loadComplaints();
   var lateOnes = all.filter(function(c) {
-    if (c.status === 'closed') return false;
-    var hours = (Date.now() - new Date(c.createdAt).getTime()) / 36e5;
-    return hours > 73;
+    if (c.status === 'closed' || c.status === 'resolved') return false;
+    var hours = (Date.now() - new Date(c.updatedAt || c.createdAt).getTime()) / 36e5;
+    return hours > 48;
   });
+
+  // استعجال تلقائي للشكاوى التي تجاوزت 48 ساعة بدون تحديث
+  for (var i = 0; i < lateOnes.length; i++) {
+    var lc = lateOnes[i];
+    // تحقق إن آخر step مش استعجال تلقائي عشان متكررش
+    var steps = lc.steps || [];
+    var lastStep = steps[steps.length - 1];
+    var alreadyUrgent = lastStep && typeof lastStep === 'object' &&
+      lastStep.note && lastStep.note.includes('استعجال تلقائي');
+    if (!alreadyUrgent) {
+      await updateComplaintStatus(lc.id, lc.status, {
+        stepNote: '⏰ استعجال تلقائي — مضى على الشكوى أكثر من 48 ساعة بدون تحديث'
+      });
+      if (lc.telegramChatId) {
+        sendTelegramMsg(lc.telegramChatId,
+          '⏰ تذكير بشأن شكواك\n\nرقم الشكوى: ' + lc.id + '\nشكواك لا تزال قيد المعالجة. نعتذر عن التأخير وسيتم البت فيها قريباً.'
+        );
+      }
+    }
+  }
   if (lateOnes.length > 0) {
     toast('warn', '⚠️ شكاوى متأخرة', lateOnes.length + ' شكوى تجاوزت 73 ساعة — راجع تبويبة الشكاوى');
     // تحديث badge
@@ -7363,6 +7457,26 @@ async function checkLateComplaints() {
     }
     if (badge) badge.textContent = lateOnes.length;
   }
+}
+
+
+// استعجال الشكوى (يدوي من المدير)
+async function urgentComplaint(id) {
+  if (!confirm('هل تريد إرسال استعجال لهذه الشكوى؟')) return;
+  await updateComplaintStatus(id, 'assigned', {
+    stepNote: '⚡ تم الاستعجال من قِبل المدير — يرجى البت في الشكوى فوراً'
+  });
+
+  // إشعار تليجرام للمواطن
+  var all = await loadComplaints();
+  var c = all.find(function(x) { return x.id === id; });
+  if (c && c.telegramChatId) {
+    sendTelegramMsg(c.telegramChatId,
+      '⚡ تحديث عاجل على شكواك\n\nرقم الشكوى: ' + id + '\nتم استعجال الجهة المختصة للبت في شكواك بشكل عاجل.'
+    );
+  }
+  toast('success', 'تم الاستعجال', 'تم تسجيل الاستعجال في سجل الأحداث');
+  openComplaint(id);
 }
 
 // إعادة إحالة الشكوى
@@ -7673,10 +7787,16 @@ async function buildComplaintsList() {
   var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager';
   console.log('isAdmin:', isAdmin, 'CURRENT_USER:', CURRENT_USER ? CURRENT_USER.role : 'null');
   if (!isAdmin) {
-    // الموظف يشوف بس الشكاوى المحالة لقسمه — الجديدة (assignedDept='') للمدير بس
+    // منطق الفلترة حسب الحالة:
+    // new      → مدير بس
+    // assigned → الجهة المحالة إليها بس
+    // resolved → مدير بس (رجعت للاعتماد)
+    // closed   → مدير بس
     all = all.filter(function(c) {
-      if (!c.assignedDept) return false; // جديدة = للمدير بس
-      return c.assignedDept === (CURRENT_USER ? CURRENT_USER.dept : '');
+      if (c.status === 'assigned') {
+        return c.assignedDept === (CURRENT_USER ? CURRENT_USER.dept : '');
+      }
+      return false; // new, resolved, closed = مدير بس
     });
   }
 
@@ -7764,8 +7884,24 @@ async function openComplaint(id) {
       '</div>' +
 
       '<div style="background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">' +
-        '<div style="font-size:11px;color:var(--text3);margin-bottom:4px">نوع الشكوى</div>' +
-        '<div style="font-size:14px;font-weight:600;color:var(--text)">' + (c.type || '') + '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+          '<div>' +
+            '<div style="font-size:10px;color:var(--text3);margin-bottom:2px">نوع الشكوى</div>' +
+            '<div style="font-size:13px;font-weight:600;color:var(--text)">' + (c.type || '—') + '</div>' +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:10px;color:var(--text3);margin-bottom:2px">اسم المواطن</div>' +
+            '<div style="font-size:13px;font-weight:600;color:var(--text)">' + (c.name || '—') + '</div>' +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:10px;color:var(--text3);margin-bottom:2px">رقم الهاتف</div>' +
+            '<div style="font-size:13px;font-weight:600;color:var(--text);direction:ltr;text-align:right">' + (c.phone || '—') + '</div>' +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:10px;color:var(--text3);margin-bottom:2px">تاريخ التقديم</div>' +
+            '<div style="font-size:11px;color:var(--text2)">' + (c.createdAt ? new Date(c.createdAt).toLocaleDateString("ar-EG") : '—') + '</div>' +
+          '</div>' +
+        '</div>' +
       '</div>' +
 
       '<div style="background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">' +
@@ -7773,7 +7909,12 @@ async function openComplaint(id) {
         '<div style="font-size:13px;color:var(--text);line-height:1.7">' + (c.text || '') + '</div>' +
       '</div>' +
 
-      (c.assignedDept ? '<div style="background:#FFF3CD;border:0.5px solid #ffc107;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#856404">📋 محالة إلى: <b>' + c.assignedDept + '</b></div>' : '') +
+      (c.assignedDept ? (
+        '<div style="background:#FFF3CD;border:0.5px solid #ffc107;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#856404;display:flex;align-items:center;justify-content:space-between">' +
+          '<span>📋 محالة إلى: <b>' + c.assignedDept + '</b></span>' +
+          (isAdmin ? '<button onclick="urgentComplaint(\'' + c.id + '\')" style="background:#e53e3e;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-family:Cairo,sans-serif;cursor:pointer;font-weight:700">⚡ استعجال</button>' : '') +
+        '</div>'
+      ) : '') +
 
       '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">سجل الأحداث</div>' +
       '<div class="complaint-steps">' + stepsHTML + '</div>' +
@@ -7831,10 +7972,30 @@ async function checkLateComplaints() {
   if (!CURRENT_USER || CURRENT_USER.role !== 'manager') return;
   var all = await loadComplaints();
   var lateOnes = all.filter(function(c) {
-    if (c.status === 'closed') return false;
-    var hours = (Date.now() - new Date(c.createdAt).getTime()) / 36e5;
-    return hours > 73;
+    if (c.status === 'closed' || c.status === 'resolved') return false;
+    var hours = (Date.now() - new Date(c.updatedAt || c.createdAt).getTime()) / 36e5;
+    return hours > 48;
   });
+
+  // استعجال تلقائي للشكاوى التي تجاوزت 48 ساعة بدون تحديث
+  for (var i = 0; i < lateOnes.length; i++) {
+    var lc = lateOnes[i];
+    // تحقق إن آخر step مش استعجال تلقائي عشان متكررش
+    var steps = lc.steps || [];
+    var lastStep = steps[steps.length - 1];
+    var alreadyUrgent = lastStep && typeof lastStep === 'object' &&
+      lastStep.note && lastStep.note.includes('استعجال تلقائي');
+    if (!alreadyUrgent) {
+      await updateComplaintStatus(lc.id, lc.status, {
+        stepNote: '⏰ استعجال تلقائي — مضى على الشكوى أكثر من 48 ساعة بدون تحديث'
+      });
+      if (lc.telegramChatId) {
+        sendTelegramMsg(lc.telegramChatId,
+          '⏰ تذكير بشأن شكواك\n\nرقم الشكوى: ' + lc.id + '\nشكواك لا تزال قيد المعالجة. نعتذر عن التأخير وسيتم البت فيها قريباً.'
+        );
+      }
+    }
+  }
   if (lateOnes.length > 0) {
     toast('warn', '⚠️ شكاوى متأخرة', lateOnes.length + ' شكوى تجاوزت 73 ساعة — راجع تبويبة الشكاوى');
     // تحديث badge
@@ -7850,6 +8011,26 @@ async function checkLateComplaints() {
     }
     if (badge) badge.textContent = lateOnes.length;
   }
+}
+
+
+// استعجال الشكوى (يدوي من المدير)
+async function urgentComplaint(id) {
+  if (!confirm('هل تريد إرسال استعجال لهذه الشكوى؟')) return;
+  await updateComplaintStatus(id, 'assigned', {
+    stepNote: '⚡ تم الاستعجال من قِبل المدير — يرجى البت في الشكوى فوراً'
+  });
+
+  // إشعار تليجرام للمواطن
+  var all = await loadComplaints();
+  var c = all.find(function(x) { return x.id === id; });
+  if (c && c.telegramChatId) {
+    sendTelegramMsg(c.telegramChatId,
+      '⚡ تحديث عاجل على شكواك\n\nرقم الشكوى: ' + id + '\nتم استعجال الجهة المختصة للبت في شكواك بشكل عاجل.'
+    );
+  }
+  toast('success', 'تم الاستعجال', 'تم تسجيل الاستعجال في سجل الأحداث');
+  openComplaint(id);
 }
 
 // إعادة إحالة الشكوى
