@@ -7241,6 +7241,7 @@ async function buildComplaintsList() {
   // نفس منطق الطلبات بالظبط:
   // isManagerMode = المدير يشوف الكل
   // غيره: يشوف assigned لقسمه بس
+  console.log('Before filter:', all.length, 'isManagerMode:', isManagerMode, 'statuses:', all.map(function(c){return c.status+'/'+c.assignedDept;}));
   if (!isManagerMode) {
     all = all.filter(function(c) {
       return c.status === 'assigned' && c.assignedDept === viewDept;
@@ -7251,6 +7252,7 @@ async function buildComplaintsList() {
   if (isManagerMode && currentComplaintFilter !== 'all') {
     all = all.filter(function(c) { return c.status === currentComplaintFilter; });
   }
+  console.log('After filter:', all.length);
 
   // ترتيب من الأحدث
   all.sort(function(a, b) { return (b.createdAt || '') > (a.createdAt || '') ? 1 : -1; });
@@ -7795,6 +7797,7 @@ async function buildComplaintsList() {
   // نفس منطق الطلبات بالظبط:
   // isManagerMode = المدير يشوف الكل
   // غيره: يشوف assigned لقسمه بس
+  console.log('Before filter:', all.length, 'isManagerMode:', isManagerMode, 'statuses:', all.map(function(c){return c.status+'/'+c.assignedDept;}));
   if (!isManagerMode) {
     all = all.filter(function(c) {
       return c.status === 'assigned' && c.assignedDept === viewDept;
@@ -7805,6 +7808,7 @@ async function buildComplaintsList() {
   if (isManagerMode && currentComplaintFilter !== 'all') {
     all = all.filter(function(c) { return c.status === currentComplaintFilter; });
   }
+  console.log('After filter:', all.length);
 
   // ترتيب من الأحدث
   all.sort(function(a, b) { return (b.createdAt || '') > (a.createdAt || '') ? 1 : -1; });
