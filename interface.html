@@ -2999,9 +2999,11 @@ function showMain(name, btn) {
   if (name==='complaints') buildComplaintsList();
   // manager mode label
   updateManagerLabel(false);
-  isManagerMode = false;
-  var modeBtn = document.getElementById('mode-switch-btn');
-  if (modeBtn) modeBtn.textContent = '🔐 دخول وضع المدير';
+  if (!CURRENT_USER || CURRENT_USER.role !== 'manager') {
+    isManagerMode = false;
+    var modeBtn = document.getElementById('mode-switch-btn');
+    if (modeBtn) modeBtn.textContent = '🔐 دخول وضع المدير';
+  }
 }
 
 function updateManagerLabel(isManager) {
@@ -7160,8 +7162,9 @@ async function buildComplaintsList() {
   var all = await loadComplaints();
 
   // فلترة حسب الـ role
-  if (!isManagerMode && CURRENT_USER && CURRENT_USER.role !== 'manager') {
-    all = all.filter(function(c) { return c.assignedDept === CURRENT_USER.dept; });
+  var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager';
+  if (!isAdmin) {
+    all = all.filter(function(c) { return c.assignedDept === (CURRENT_USER ? CURRENT_USER.dept : ''); });
   }
 
   // فلترة حسب الـ tab
