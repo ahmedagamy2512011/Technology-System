@@ -7186,8 +7186,9 @@ async function buildComplaintsList() {
   var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager';
   console.log('isAdmin:', isAdmin, 'CURRENT_USER:', CURRENT_USER ? CURRENT_USER.role : 'null');
   if (!isAdmin) {
-    // الموظف يشوف بس الشكاوى المحالة لقسمه
+    // الموظف يشوف بس الشكاوى المحالة لقسمه — الجديدة (assignedDept='') للمدير بس
     all = all.filter(function(c) {
+      if (!c.assignedDept) return false; // جديدة = للمدير بس
       return c.assignedDept === (CURRENT_USER ? CURRENT_USER.dept : '');
     });
   }
@@ -7243,8 +7244,9 @@ async function openComplaint(id) {
   var c = all.find(function(x) { return x.id === id; });
   if (!c) return;
 
-  var canAssign = isManagerMode || (CURRENT_USER && CURRENT_USER.role === 'manager');
-  var canClose  = canAssign;
+  var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager';
+  var canAssign = isAdmin;
+  var canClose  = isAdmin;
   var isResolved = c.status === 'resolved';
 
   // قائمة الأقسام
@@ -7671,8 +7673,9 @@ async function buildComplaintsList() {
   var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager';
   console.log('isAdmin:', isAdmin, 'CURRENT_USER:', CURRENT_USER ? CURRENT_USER.role : 'null');
   if (!isAdmin) {
-    // الموظف يشوف بس الشكاوى المحالة لقسمه
+    // الموظف يشوف بس الشكاوى المحالة لقسمه — الجديدة (assignedDept='') للمدير بس
     all = all.filter(function(c) {
+      if (!c.assignedDept) return false; // جديدة = للمدير بس
       return c.assignedDept === (CURRENT_USER ? CURRENT_USER.dept : '');
     });
   }
@@ -7728,8 +7731,9 @@ async function openComplaint(id) {
   var c = all.find(function(x) { return x.id === id; });
   if (!c) return;
 
-  var canAssign = isManagerMode || (CURRENT_USER && CURRENT_USER.role === 'manager');
-  var canClose  = canAssign;
+  var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager';
+  var canAssign = isAdmin;
+  var canClose  = isAdmin;
   var isResolved = c.status === 'resolved';
 
   // قائمة الأقسام
