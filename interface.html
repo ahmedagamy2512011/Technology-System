@@ -3028,14 +3028,15 @@ function showMain(name, btn) {
   if (name==='overview')  refreshAll();
   if (name==='manager')   { buildManagerPage(); updateManagerLabel(true); return; }
   if (name==='inquiries') buildInquiriesList();
-  if (name==='complaints') buildComplaintsList();
-  // manager mode label
+  // manager mode label — لازم يتضبط قبل buildComplaintsList
   updateManagerLabel(false);
   if (!CURRENT_USER || CURRENT_USER.role !== 'manager') {
     isManagerMode = false;
     var modeBtn = document.getElementById('mode-switch-btn');
     if (modeBtn) modeBtn.textContent = '🔐 دخول وضع المدير';
   }
+  // بعد ضبط isManagerMode
+  if (name==='complaints') buildComplaintsList();
 }
 
 function updateManagerLabel(isManager) {
@@ -7239,14 +7240,17 @@ async function buildComplaintsList() {
   // isManagerMode → يشوف الكل
   // غيره → يشوف assigned لـ currentEmployee بس
   // ============================================================
-  var isManager = isManagerMode || (CURRENT_USER && CURRENT_USER.role === 'manager');
+  // نفس منطق الطلبات حرفياً:
+  // isManagerMode = true → يشوف الكل
+  // isManagerMode = false → يشوف assigned لـ currentEmployee بس
+  // (حتى لو CURRENT_USER.role = manager، لما يتصفح موظف بيشوف زيه)
   all = all.filter(function(c) {
-    if (isManager) return true;
+    if (isManagerMode) return true;
     return c.status === 'assigned' && c.assignedDept === currentEmployee;
   });
 
-  // فلتر الـ tab
-  if (isManager && currentComplaintFilter !== 'all') {
+  // فلتر الـ tab للمدير بس
+  if (isManagerMode && currentComplaintFilter !== 'all') {
     all = all.filter(function(c) { return c.status === currentComplaintFilter; });
   }
 
@@ -7296,7 +7300,7 @@ async function openComplaint(id) {
   var c = all.find(function(x) { return x.id === id; });
   if (!c) return;
 
-  var isAdmin = isManagerMode || (CURRENT_USER && CURRENT_USER.role === 'manager');
+  var isAdmin = isManagerMode;
   var canAssign = isAdmin;
   var canClose  = isAdmin;
   var isResolved = c.status === 'resolved';
@@ -7791,14 +7795,17 @@ async function buildComplaintsList() {
   // isManagerMode → يشوف الكل
   // غيره → يشوف assigned لـ currentEmployee بس
   // ============================================================
-  var isManager = isManagerMode || (CURRENT_USER && CURRENT_USER.role === 'manager');
+  // نفس منطق الطلبات حرفياً:
+  // isManagerMode = true → يشوف الكل
+  // isManagerMode = false → يشوف assigned لـ currentEmployee بس
+  // (حتى لو CURRENT_USER.role = manager، لما يتصفح موظف بيشوف زيه)
   all = all.filter(function(c) {
-    if (isManager) return true;
+    if (isManagerMode) return true;
     return c.status === 'assigned' && c.assignedDept === currentEmployee;
   });
 
-  // فلتر الـ tab
-  if (isManager && currentComplaintFilter !== 'all') {
+  // فلتر الـ tab للمدير بس
+  if (isManagerMode && currentComplaintFilter !== 'all') {
     all = all.filter(function(c) { return c.status === currentComplaintFilter; });
   }
 
@@ -7848,7 +7855,7 @@ async function openComplaint(id) {
   var c = all.find(function(x) { return x.id === id; });
   if (!c) return;
 
-  var isAdmin = isManagerMode || (CURRENT_USER && CURRENT_USER.role === 'manager');
+  var isAdmin = isManagerMode;
   var canAssign = isAdmin;
   var canClose  = isAdmin;
   var isResolved = c.status === 'resolved';
