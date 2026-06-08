@@ -1795,7 +1795,7 @@ body {
       <div style="display:flex; gap:6px; flex-wrap:wrap">
         <button class="btn btn-ghost btn-sm complaint-filter-btn active" onclick="filterComplaints('all', this)">الكل</button>
         <button class="btn btn-ghost btn-sm complaint-filter-btn" onclick="filterComplaints('new', this)">جديدة</button>
-        <button class="btn btn-ghost btn-sm complaint-filter-btn" onclick="filterComplaints('assigned', this)">محالة</button>
+        <button class="btn btn-ghost btn-sm complaint-filter-btn" id="assigned-tab-btn" onclick="filterComplaints('assigned', this)" >محالة</button>
         <button class="btn btn-ghost btn-sm complaint-filter-btn" onclick="filterComplaints('resolved', this)">منتهية</button>
         <button class="btn btn-ghost btn-sm complaint-filter-btn" onclick="filterComplaints('closed', this)">مغلقة</button>
       </div>
@@ -7232,23 +7232,26 @@ async function buildComplaintsList() {
   // فلترة حسب الـ role
   var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager';
   console.log('isAdmin:', isAdmin, 'CURRENT_USER:', CURRENT_USER ? CURRENT_USER.role : 'null');
-  if (!isAdmin) {
-    // منطق الفلترة حسب الحالة:
-    // new      → مدير بس
-    // assigned → الجهة المحالة إليها بس
-    // resolved → مدير بس (رجعت للاعتماد)
-    // closed   → مدير بس
-    all = all.filter(function(c) {
-      if (c.status === 'assigned') {
-        return c.assignedDept === (CURRENT_USER ? CURRENT_USER.dept : '');
-      }
-      return false; // new, resolved, closed = مدير بس
-    });
-  }
+  // منطق الفلترة حسب الدور والحالة:
+  // المدير: new + resolved + closed بس (assigned عند الجهة)
+  // الموظف: assigned لقسمه بس
+  all = all.filter(function(c) {
+    if (isAdmin) {
+      // المدير يشوف الكل دايماً
+      return true;
+    } else {
+      // الموظف يشوف assigned لقسمه بس
+      return c.status === 'assigned' && c.assignedDept === (CURRENT_USER ? CURRENT_USER.dept : '');
+    }
+  });
 
-  // فلترة حسب الـ tab
+  // فلترة حسب الـ tab — للكل
   if (currentComplaintFilter !== 'all') {
-    all = all.filter(function(c) { return c.status === currentComplaintFilter; });
+    if (isAdmin) {
+      all = all.filter(function(c) { return c.status === currentComplaintFilter; });
+    } else {
+      // الموظف مش محتاج tab filter — role filter كافي
+    }
   }
 
   // ترتيب من الأحدث
@@ -7786,23 +7789,26 @@ async function buildComplaintsList() {
   // فلترة حسب الـ role
   var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager';
   console.log('isAdmin:', isAdmin, 'CURRENT_USER:', CURRENT_USER ? CURRENT_USER.role : 'null');
-  if (!isAdmin) {
-    // منطق الفلترة حسب الحالة:
-    // new      → مدير بس
-    // assigned → الجهة المحالة إليها بس
-    // resolved → مدير بس (رجعت للاعتماد)
-    // closed   → مدير بس
-    all = all.filter(function(c) {
-      if (c.status === 'assigned') {
-        return c.assignedDept === (CURRENT_USER ? CURRENT_USER.dept : '');
-      }
-      return false; // new, resolved, closed = مدير بس
-    });
-  }
+  // منطق الفلترة حسب الدور والحالة:
+  // المدير: new + resolved + closed بس (assigned عند الجهة)
+  // الموظف: assigned لقسمه بس
+  all = all.filter(function(c) {
+    if (isAdmin) {
+      // المدير يشوف الكل دايماً
+      return true;
+    } else {
+      // الموظف يشوف assigned لقسمه بس
+      return c.status === 'assigned' && c.assignedDept === (CURRENT_USER ? CURRENT_USER.dept : '');
+    }
+  });
 
-  // فلترة حسب الـ tab
+  // فلترة حسب الـ tab — للكل
   if (currentComplaintFilter !== 'all') {
-    all = all.filter(function(c) { return c.status === currentComplaintFilter; });
+    if (isAdmin) {
+      all = all.filter(function(c) { return c.status === currentComplaintFilter; });
+    } else {
+      // الموظف مش محتاج tab filter — role filter كافي
+    }
   }
 
   // ترتيب من الأحدث
