@@ -7132,6 +7132,28 @@ var COMPLAINT_STEPS_LABELS = {
 };
 
 // جلب الشكاوى من Firebase
+
+function parseFirestoreDoc(fields) {
+  var out = {};
+  Object.keys(fields).forEach(function(k) {
+    out[k] = parseFirestoreValue(fields[k]);
+  });
+  return out;
+}
+function parseFirestoreValue(v) {
+  if (!v) return null;
+  if (v.stringValue  !== undefined) return v.stringValue;
+  if (v.integerValue !== undefined) return parseInt(v.integerValue);
+  if (v.booleanValue !== undefined) return v.booleanValue;
+  if (v.arrayValue) {
+    return (v.arrayValue.values || []).map(function(item) {
+      return parseFirestoreValue(item);
+    });
+  }
+  if (v.mapValue) return parseFirestoreDoc(v.mapValue.fields || {});
+  return null;
+}
+
 async function loadComplaints() {
   var FB_C_ALL = 'https://firestore.googleapis.com/v1/projects/petitions-wadi/databases/(default)/documents/complaints';
   try {
@@ -7144,16 +7166,7 @@ async function loadComplaints() {
       return [];
     }
     return data.documents.map(function(docItem) {
-      var f = docItem.fields || {};
-      var out = {};
-      Object.keys(f).forEach(function(k) {
-        var v = f[k];
-        if (v.stringValue !== undefined) out[k] = v.stringValue;
-        else if (v.arrayValue) out[k] = v.arrayValue.values || [];
-        else if (v.booleanValue !== undefined) out[k] = v.booleanValue;
-        else out[k] = v;
-      });
-      return out;
+      return parseFirestoreDoc(docItem.fields || {});
     });
   } catch(e) { console.warn('loadComplaints error:', e); return []; }
 }
