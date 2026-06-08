@@ -7137,7 +7137,12 @@ async function loadComplaints() {
   try {
     var res = await fetch(FB_C_ALL);
     var data = await res.json();
-    if (!data.documents) return [];
+    console.log('loadComplaints raw:', JSON.stringify(data).substring(0, 500));
+    if (data.error) { console.warn('Firestore error:', data.error); return []; }
+    if (!data.documents) {
+      console.warn('No documents field — keys:', Object.keys(data));
+      return [];
+    }
     return data.documents.map(function(docItem) {
       var f = docItem.fields || {};
       var out = {};
