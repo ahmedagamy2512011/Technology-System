@@ -3279,6 +3279,7 @@ function openAssignModal(id, next) {
 
 function selectEmployee(emp) {
   currentEmployee = emp;
+  currentViewDept = emp; // نفس قيمة assignedDept
   // فلتر: الشباك الأمامي يشوف كل الطلبات، غيره يشوف طلباته فقط
   currentEmployeeFilter = (emp === FRONT_DESK_NAME) ? 'all' : emp;
   // تحديث الـ topbar
@@ -7164,6 +7165,7 @@ async function removeEmployee(username) {
 // COMPLAINTS — Firebase + UI
 // ============================================================
 var currentComplaintId = null;
+var currentViewDept = ''; // الـ dept المعروض حالياً
 var currentComplaintFilter = 'all';
 
 var COMPLAINT_STATUS = {
@@ -7230,16 +7232,18 @@ async function buildComplaintsList() {
   console.log('complaints parsed:', all.length, all.length ? JSON.stringify(all[0]).substring(0,200) : 'empty');
 
   // فلترة حسب الـ role
-  var isAdmin = isManagerMode || (CURRENT_USER && CURRENT_USER.role === 'manager' && currentEmployee === (CURRENT_USER ? CURRENT_USER.name : ''));
-  console.log('isAdmin:', isAdmin, 'isManagerMode:', isManagerMode, 'currentEmployee:', currentEmployee);
+  // isManagerMode = المدير بيتصفح بوضع المدير → يشوف الكل
+  // غيره → يشوف assigned لقسمه
+  var isAdmin = isManagerMode;
+  // currentEmployee = نفس قيمة assignedDept في الشكاوى
+  var viewDept = isAdmin ? '' : currentEmployee;
+  console.log('isAdmin:', isAdmin, 'viewDept:', viewDept);
   // نفس منطق الطلبات بالظبط:
   // isManagerMode = المدير يشوف الكل
   // غيره: يشوف assigned لقسمه بس
   if (!isManagerMode) {
-    var empDept = CURRENT_USER ? CURRENT_USER.dept : '';
-    // لو غيّر الموظف من الـ dropdown، نستخدم الـ dept بتاعه من employees
     all = all.filter(function(c) {
-      return c.status === 'assigned' && c.assignedDept === empDept;
+      return c.status === 'assigned' && c.assignedDept === viewDept;
     });
   }
 
@@ -7715,6 +7719,7 @@ async function removeEmployee(username) {
 // COMPLAINTS — Firebase + UI
 // ============================================================
 var currentComplaintId = null;
+var currentViewDept = ''; // الـ dept المعروض حالياً
 var currentComplaintFilter = 'all';
 
 var COMPLAINT_STATUS = {
@@ -7781,16 +7786,18 @@ async function buildComplaintsList() {
   console.log('complaints parsed:', all.length, all.length ? JSON.stringify(all[0]).substring(0,200) : 'empty');
 
   // فلترة حسب الـ role
-  var isAdmin = isManagerMode || (CURRENT_USER && CURRENT_USER.role === 'manager' && currentEmployee === (CURRENT_USER ? CURRENT_USER.name : ''));
-  console.log('isAdmin:', isAdmin, 'isManagerMode:', isManagerMode, 'currentEmployee:', currentEmployee);
+  // isManagerMode = المدير بيتصفح بوضع المدير → يشوف الكل
+  // غيره → يشوف assigned لقسمه
+  var isAdmin = isManagerMode;
+  // currentEmployee = نفس قيمة assignedDept في الشكاوى
+  var viewDept = isAdmin ? '' : currentEmployee;
+  console.log('isAdmin:', isAdmin, 'viewDept:', viewDept);
   // نفس منطق الطلبات بالظبط:
   // isManagerMode = المدير يشوف الكل
   // غيره: يشوف assigned لقسمه بس
   if (!isManagerMode) {
-    var empDept = CURRENT_USER ? CURRENT_USER.dept : '';
-    // لو غيّر الموظف من الـ dropdown، نستخدم الـ dept بتاعه من employees
     all = all.filter(function(c) {
-      return c.status === 'assigned' && c.assignedDept === empDept;
+      return c.status === 'assigned' && c.assignedDept === viewDept;
     });
   }
 
