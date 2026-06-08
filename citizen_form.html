@@ -411,6 +411,9 @@
 <div class="tabs">
   <button class="tab active" onclick="showTab('form')">📝 تقديم طلب</button>
   <button class="tab" onclick="showTab('status')">🔍 متابعة الطلب</button>
+  <button class="tab" onclick="showTab('complaint')">📣 تقديم شكوى</button>
+  <button class="tab" onclick="showTab('complaint-status')">🔍 متابعة الشكوى</button>
+  <button class="tab" onclick="showTab('my-complaints')">📋 شكاواي</button>
 </div>
 
 <div class="container">
@@ -1357,6 +1360,198 @@ window.onload = () => {
     searchRequest();
   }
 };
+</script>
+
+  <!-- COMPLAINT FORM -->
+  <div id="section-complaint" class="section" style="display:none">
+    <h2 style="font-size:16px;font-weight:700;color:#1a3a6b;margin-bottom:16px">📣 تقديم شكوى أو مقترح</h2>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;font-weight:600;color:#4a5568;display:block;margin-bottom:5px">نوع الشكوى</label>
+      <select id="c-type" style="width:100%;padding:10px;border:1.5px solid #e2e6ef;border-radius:10px;font-family:Cairo,sans-serif;font-size:13px;background:#f8f9fc;box-sizing:border-box">
+        <option value="">اختر النوع</option>
+        <option value="مياه">💧 مياه</option>
+        <option value="كهرباء">⚡ كهرباء</option>
+        <option value="قمامة">🗑️ قمامة</option>
+        <option value="طرق">🚧 طرق</option>
+        <option value="إشغالات">🏗️ إشغالات</option>
+        <option value="مقترح">💡 مقترح</option>
+        <option value="أخرى">📌 أخرى</option>
+      </select>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;font-weight:600;color:#4a5568;display:block;margin-bottom:5px">اسمك الكامل</label>
+      <input type="text" id="c-name" placeholder="الاسم الكامل" style="width:100%;padding:10px;border:1.5px solid #e2e6ef;border-radius:10px;font-family:Cairo,sans-serif;font-size:13px;background:#f8f9fc;box-sizing:border-box"/>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;font-weight:600;color:#4a5568;display:block;margin-bottom:5px">رقم الهاتف</label>
+      <input type="tel" id="c-phone" placeholder="01XXXXXXXXX" dir="ltr" style="width:100%;padding:10px;border:1.5px solid #e2e6ef;border-radius:10px;font-family:Cairo,sans-serif;font-size:13px;background:#f8f9fc;box-sizing:border-box"/>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;font-weight:600;color:#4a5568;display:block;margin-bottom:5px">نص الشكوى أو المقترح</label>
+      <textarea id="c-text" rows="5" placeholder="اكتب شكواك أو مقترحك بالتفصيل..." style="width:100%;padding:10px;border:1.5px solid #e2e6ef;border-radius:10px;font-family:Cairo,sans-serif;font-size:13px;background:#f8f9fc;resize:vertical;box-sizing:border-box"></textarea>
+    </div>
+    <div id="complaint-msg" style="display:none;padding:10px;border-radius:8px;font-size:12px;margin-bottom:10px;text-align:center"></div>
+    <button onclick="submitComplaint()" style="width:100%;padding:12px;background:#1a3a6b;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:Cairo,sans-serif;cursor:pointer;margin-bottom:16px">إرسال الشكوى 📣</button>
+    <div style="background:#f0f4ff;border-radius:10px;padding:12px;font-size:11px;color:#4a5568;line-height:1.8">
+      أو تواصل مع منصة <b>صوتك مسموع</b>:<br>
+      📱 واتس آب: <b>01150606783</b><br>
+      📞 خط ساخن: <b>15330</b><br>
+      👥 فيسبوك: fb.com/sotakmasmwo
+    </div>
+  </div>
+
+  <!-- COMPLAINT STATUS -->
+  <div id="section-complaint-status" class="section" style="display:none">
+    <h2 style="font-size:16px;font-weight:700;color:#1a3a6b;margin-bottom:16px">🔍 متابعة الشكوى</h2>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <input type="text" id="c-track-id" placeholder="CMP-2026-XXXX" dir="ltr"
+        style="flex:1;padding:10px;border:1.5px solid #e2e6ef;border-radius:10px;font-family:Cairo,sans-serif;font-size:13px;background:#f8f9fc"/>
+      <button onclick="trackComplaint()" style="padding:10px 16px;background:#1a3a6b;color:white;border:none;border-radius:10px;font-family:Cairo,sans-serif;cursor:pointer;font-weight:600">بحث</button>
+    </div>
+    <div id="complaint-track-result"></div>
+  </div>
+
+  <!-- MY COMPLAINTS -->
+  <div id="section-my-complaints" class="section" style="display:none">
+    <h2 style="font-size:16px;font-weight:700;color:#1a3a6b;margin-bottom:16px">📋 شكاواي السابقة</h2>
+    <div id="my-complaints-list"></div>
+  </div>
+
+<script>
+const FB_BASE_C = 'https://firestore.googleapis.com/v1/projects/petitions-wadi/databases/(default)/documents';
+
+const COMPLAINT_STATUS_LABEL = {
+  new:      '🆕 جديدة — قيد المراجعة',
+  assigned: '📋 محالة — جارٍ العمل عليها',
+  resolved: '✅ تمت المعالجة — بانتظار القرار النهائي',
+  closed:   '🔒 مغلقة — صدر القرار النهائي'
+};
+
+async function submitComplaint() {
+  const type  = document.getElementById('c-type').value;
+  const name  = document.getElementById('c-name').value.trim();
+  const phone = document.getElementById('c-phone').value.trim();
+  const text  = document.getElementById('c-text').value.trim();
+  const msgEl = document.getElementById('complaint-msg');
+
+  function showMsg(bg, color, msg) {
+    msgEl.style.cssText = 'display:block;background:'+bg+';color:'+color+';padding:10px;border-radius:8px;font-size:12px;margin-bottom:10px;text-align:center';
+    msgEl.textContent = msg;
+  }
+
+  if (!type || !text || !name || !phone) { showMsg('#fdecea','#c0392b','يرجى ملء جميع الحقول'); return; }
+
+  const now = new Date();
+  const id = 'CMP-' + now.getFullYear() + '-' + (Math.floor(Math.random()*9000)+1000);
+  const chatId = new URLSearchParams(window.location.search).get('chat_id') || '';
+
+  const body = { fields: {
+    id:             { stringValue: id },
+    name:           { stringValue: name },
+    phone:          { stringValue: phone },
+    telegramChatId: { stringValue: chatId },
+    type:           { stringValue: type },
+    text:           { stringValue: text },
+    status:         { stringValue: 'new' },
+    assignedTo:     { stringValue: '' },
+    assignedDept:   { stringValue: '' },
+    createdAt:      { stringValue: now.toISOString() },
+    updatedAt:      { stringValue: now.toISOString() },
+    steps: { arrayValue: { values: [{ mapValue: { fields: {
+      s:    { stringValue: 'new' },
+      t:    { stringValue: now.toISOString() },
+      by:   { stringValue: 'بوابة المواطن' },
+      note: { stringValue: '' }
+    }}}]}}
+  }};
+
+  showMsg('#eef1f9','#1a3a6b','جارٍ الإرسال...');
+  try {
+    await fetch(FB_BASE_C + '/complaints/' + id, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    const myC = JSON.parse(localStorage.getItem('wadi_my_complaints') || '[]');
+    myC.unshift({ id, type, status: 'new', createdAt: now.toISOString() });
+    localStorage.setItem('wadi_my_complaints', JSON.stringify(myC));
+    showMsg('#e6f5ef','#0f7b55','تم إرسال شكواك — رقم الشكوى: ' + id);
+    setTimeout(() => {
+      document.getElementById('c-track-id').value = id;
+      document.querySelectorAll('.tab')[3].click();
+      trackComplaint();
+    }, 1500);
+  } catch(e) {
+    showMsg('#fdecea','#c0392b','⚠️ حدث خطأ، حاول مرة أخرى');
+  }
+}
+
+async function trackComplaint() {
+  const id = (document.getElementById('c-track-id').value || '').trim().toUpperCase();
+  const result = document.getElementById('complaint-track-result');
+  if (!id) return;
+  result.innerHTML = '<div style="text-align:center;color:#8896a8;padding:20px">جارٍ البحث...</div>';
+  try {
+    const res = await fetch(FB_BASE_C + '/complaints/' + id);
+    const data = await res.json();
+    if (!data.fields) {
+      result.innerHTML = '<div style="text-align:center;color:#c0392b;padding:20px;font-size:13px">لم يتم العثور على شكوى بهذا الرقم</div>';
+      return;
+    }
+    const f = data.fields;
+    const status = f.status.stringValue;
+    const steps = (f.steps.arrayValue.values || []).map(v => v.mapValue.fields);
+    const sLabels = { new:'تم استلام الشكوى', assigned:'تم إحالتها للجهة المختصة', resolved:'تمت المعالجة', closed:'صدر القرار النهائي' };
+    const stepsHTML = steps.map(s =>
+      '<div style="display:flex;gap:8px;padding:8px 0;border-bottom:0.5px solid #e2e6ef">' +
+      '<div style="width:8px;height:8px;border-radius:50%;background:#1a3a6b;flex-shrink:0;margin-top:5px"></div>' +
+      '<div><div style="font-size:12px;font-weight:600;color:#1a2332">' + (sLabels[s.s.stringValue] || s.s.stringValue) + '</div>' +
+      (s.note && s.note.stringValue ? '<div style="font-size:11px;color:#6b7280;margin-top:2px">' + s.note.stringValue + '</div>' : '') +
+      '<div style="font-size:10px;color:#8896a8;margin-top:2px">' + new Date(s.t.stringValue).toLocaleString('ar-EG') + '</div></div></div>'
+    ).join('');
+    result.innerHTML =
+      '<div style="background:white;border:0.5px solid #e2e6ef;border-radius:12px;padding:14px">' +
+      '<div style="font-family:monospace;font-size:13px;font-weight:700;color:#1a3a6b;margin-bottom:8px">' + id + '</div>' +
+      '<div style="background:#eef1f9;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;color:#1a3a6b;margin-bottom:12px">' + (COMPLAINT_STATUS_LABEL[status] || status) + '</div>' +
+      '<div style="font-size:12px;color:#4a5568;margin-bottom:4px"><b>النوع:</b> ' + f.type.stringValue + '</div>' +
+      '<div style="font-size:12px;color:#4a5568;margin-bottom:12px"><b>النص:</b> ' + f.text.stringValue + '</div>' +
+      '<div style="font-size:11px;font-weight:700;color:#6b7280;margin-bottom:6px">سجل الأحداث</div>' +
+      stepsHTML + '</div>';
+  } catch(e) {
+    result.innerHTML = '<div style="text-align:center;color:#c0392b;padding:20px;font-size:13px">خطأ في الاتصال</div>';
+  }
+}
+
+function loadMyComplaints() {
+  const list = JSON.parse(localStorage.getItem('wadi_my_complaints') || '[]');
+  const container = document.getElementById('my-complaints-list');
+  if (!list.length) {
+    container.innerHTML = '<div style="text-align:center;color:#8896a8;padding:40px 0;font-size:13px">لا توجد شكاوى مسجلة على هذا الجهاز</div>';
+    return;
+  }
+  container.innerHTML = list.map(c => {
+    const encodedId = c.id.replace(/'/g, "\'");
+    return '<div style="background:white;border:0.5px solid #e2e6ef;border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer" onclick="goToTrack(' + "'" + encodedId + "'" + ')">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between">' +
+      '<span style="font-family:monospace;font-size:11px;font-weight:700;color:#1a3a6b">' + c.id + '</span>' +
+      '<span style="font-size:10px;background:#eef1f9;color:#1a3a6b;padding:2px 8px;border-radius:10px">' + c.type + '</span></div>' +
+      '<div style="font-size:10px;color:#8896a8;margin-top:4px">' + new Date(c.createdAt).toLocaleDateString('ar-EG') + '</div></div>';
+  }).join('');
+}
+
+function goToTrack(id) {
+  document.getElementById('c-track-id').value = id;
+  document.querySelectorAll('.tab')[3].click();
+  trackComplaint();
+}
+
+// override showTab
+function showTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => { s.classList.remove('active'); s.style.display = 'none'; });
+  event.target.classList.add('active');
+  const sec = document.getElementById('section-' + tab);
+  if (sec) { sec.classList.add('active'); sec.style.display = 'block'; }
+  if (tab === 'my-complaints') loadMyComplaints();
+}
 </script>
 </body>
 </html>
