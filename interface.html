@@ -7178,9 +7178,11 @@ async function buildComplaintsList() {
   container.innerHTML = '<div style="text-align:center;color:var(--text3);padding:40px 0;font-size:13px">جارٍ التحميل...</div>';
 
   var all = await loadComplaints();
+  console.log('complaints parsed:', all.length, all.length ? JSON.stringify(all[0]).substring(0,200) : 'empty');
 
   // فلترة حسب الـ role
   var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager';
+  console.log('isAdmin:', isAdmin, 'CURRENT_USER:', CURRENT_USER ? CURRENT_USER.role : 'null');
   if (!isAdmin) {
     all = all.filter(function(c) { return c.assignedDept === (CURRENT_USER ? CURRENT_USER.dept : ''); });
   }
