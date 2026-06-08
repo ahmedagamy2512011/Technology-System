@@ -1720,6 +1720,7 @@ body {
 </div>
 
 <!-- ===== MANAGER PAGE ===== -->
+
   <div class="page" id="page-manager" style="display:none; overflow-y:auto; padding:20px; flex:1">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
       <div>
@@ -1782,6 +1783,31 @@ body {
       </table>
     </div>
   </div>
+
+<div class="page flex-page" id="page-complaints" style="display:none; overflow:hidden; flex:1">
+  <div class="sidebar" id="complaints-sidebar" style="width:300px; min-width:300px">
+    <div class="sidebar-header" style="padding:12px 16px; border-bottom:1px solid var(--border)">
+      <div style="font-size:13px; font-weight:700; color:var(--text); margin-bottom:8px">📣 الشكاوى والمقترحات</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm complaint-filter-btn active" onclick="filterComplaints('all', this)">الكل</button>
+        <button class="btn btn-ghost btn-sm complaint-filter-btn" onclick="filterComplaints('new', this)">جديدة</button>
+        <button class="btn btn-ghost btn-sm complaint-filter-btn" onclick="filterComplaints('assigned', this)">محالة</button>
+        <button class="btn btn-ghost btn-sm complaint-filter-btn" onclick="filterComplaints('resolved', this)">منتهية</button>
+        <button class="btn btn-ghost btn-sm complaint-filter-btn" onclick="filterComplaints('closed', this)">مغلقة</button>
+      </div>
+    </div>
+    <div style="overflow-y:auto; flex:1; padding:10px" id="complaints-list-container">
+      <div style="text-align:center; color:var(--text3); padding:40px 0; font-size:13px">جارٍ التحميل...</div>
+    </div>
+  </div>
+  <div class="complaint-detail" id="complaint-detail-panel">
+    <div class="welcome-state" style="height:100%">
+      <div style="font-size:40px; margin-bottom:12px">📣</div>
+      <div style="font-size:15px; font-weight:600; color:var(--text)">اختر شكوى من القائمة</div>
+      <div style="font-size:12px; color:var(--text3); margin-top:6px">انقر على أي شكوى لعرض تفاصيلها واتخاذ اللازم</div>
+    </div>
+  </div>
+</div>
 
 </div>
 
@@ -6985,34 +7011,6 @@ function exportTable() {
 
 
 <!-- ============================================================
-     COMPLAINTS PAGE
-     ============================================================ -->
-<div class="page flex-page" id="page-complaints" style="display:none; overflow:hidden; flex:1">
-  <div class="sidebar" id="complaints-sidebar" style="width:300px; min-width:300px">
-    <div class="sidebar-header" style="padding:12px 16px; border-bottom:1px solid var(--border)">
-      <div style="font-size:13px; font-weight:700; color:var(--text); margin-bottom:8px">📣 الشكاوى والمقترحات</div>
-      <div style="display:flex; gap:6px; flex-wrap:wrap">
-        <button class="btn btn-ghost btn-sm complaint-filter-btn active" onclick="filterComplaints('all', this)">الكل</button>
-        <button class="btn btn-ghost btn-sm complaint-filter-btn" onclick="filterComplaints('new', this)">جديدة</button>
-        <button class="btn btn-ghost btn-sm complaint-filter-btn" onclick="filterComplaints('assigned', this)">محالة</button>
-        <button class="btn btn-ghost btn-sm complaint-filter-btn" onclick="filterComplaints('resolved', this)">منتهية</button>
-        <button class="btn btn-ghost btn-sm complaint-filter-btn" onclick="filterComplaints('closed', this)">مغلقة</button>
-      </div>
-    </div>
-    <div style="overflow-y:auto; flex:1; padding:10px" id="complaints-list-container">
-      <div style="text-align:center; color:var(--text3); padding:40px 0; font-size:13px">جارٍ التحميل...</div>
-    </div>
-  </div>
-  <div class="complaint-detail" id="complaint-detail-panel">
-    <div class="welcome-state" style="height:100%">
-      <div style="font-size:40px; margin-bottom:12px">📣</div>
-      <div style="font-size:15px; font-weight:600; color:var(--text)">اختر شكوى من القائمة</div>
-      <div style="font-size:12px; color:var(--text3); margin-top:6px">انقر على أي شكوى لعرض تفاصيلها واتخاذ اللازم</div>
-    </div>
-  </div>
-</div>
-
-<!-- ============================================================
      EMPLOYEES MANAGER MODAL (للمدير فقط)
      ============================================================ -->
 <div id="emp-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(3px)">
@@ -7200,8 +7198,10 @@ async function buildComplaintsList() {
     return;
   }
 
+  console.log('rendering', all.length, 'complaints, container:', container ? 'found' : 'NOT FOUND');
   container.innerHTML = all.map(function(c) {
     var isSelected = c.id === currentComplaintId;
+    console.log('card:', c.id, c.status, c.type);
     return (
       '<div class="complaint-card' + (isSelected ? ' selected' : '') + '" onclick="openComplaint(\'' + c.id + '\')">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">' +
@@ -7425,4 +7425,427 @@ function sendTelegramMsg(chatId, text) {
 
 </script>
 </body>
-</html
+</htm
+
+<!-- ============================================================
+     EMPLOYEES MANAGER MODAL (للمدير فقط)
+     ============================================================ -->
+<div id="emp-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(3px)">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:560px;max-height:80vh;overflow-y:auto;direction:rtl;box-shadow:0 24px 64px rgba(0,0,0,0.25)">
+    <div style="padding:18px 20px;border-bottom:1px solid #e2e6ef;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:15px;font-weight:700;color:#1a3a6b">👥 إدارة الموظفين</div>
+      <button onclick="document.getElementById('emp-modal').style.display='none'" style="background:none;border:none;font-size:18px;cursor:pointer;color:#8896a8">✕</button>
+    </div>
+    <div style="padding:16px 20px">
+      <div style="font-size:11px;font-weight:700;color:#8896a8;margin-bottom:8px;text-transform:uppercase">طلبات التسجيل المعلقة</div>
+      <div id="emp-pending-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px"></div>
+      <div style="font-size:11px;font-weight:700;color:#8896a8;margin-bottom:8px;text-transform:uppercase">الموظفون النشطون</div>
+      <div id="emp-active-list" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function showEmployeesManager() {
+  if (!window.EmployeesDB) return;
+  document.getElementById('emp-modal').style.display = 'flex';
+  var all = await window.EmployeesDB.getAll();
+  var pending = all.filter(e => e.pending);
+  var active  = all.filter(e => !e.pending);
+
+  // Pending
+  var pendingEl = document.getElementById('emp-pending-list');
+  if (!pending.length) {
+    pendingEl.innerHTML = '<div style="font-size:12px;color:#8896a8;padding:8px 0">لا توجد طلبات معلقة</div>';
+  } else {
+    pendingEl.innerHTML = pending.map(e => `
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:#1a2332">${e.name}</div>
+          <div style="font-size:11px;color:#8896a8">${e.dept} — ${e.center} | @${e.username}</div>
+        </div>
+        <button onclick="approveEmployee('${e.username}')" style="background:#0f7b55;color:white;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-family:Cairo,sans-serif;cursor:pointer;font-weight:600">موافقة</button>
+        <button onclick="rejectEmployee('${e.username}')" style="background:#c0392b;color:white;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-family:Cairo,sans-serif;cursor:pointer;font-weight:600">رفض</button>
+      </div>
+    `).join('');
+  }
+
+  // Active
+  var activeEl = document.getElementById('emp-active-list');
+  if (!active.length) {
+    activeEl.innerHTML = '<div style="font-size:12px;color:#8896a8">لا يوجد موظفون مسجلون</div>';
+  } else {
+    activeEl.innerHTML = active.map(e => `
+      <div style="background:#f8f9fc;border:1px solid #e2e6ef;border-radius:8px;padding:8px 14px;display:flex;align-items:center;gap:8px">
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:600;color:#1a2332">${e.name} ${e.role==='manager'?'<span style="background:#eef1f9;color:#1a3a6b;font-size:9px;padding:1px 6px;border-radius:8px;margin-right:4px">مدير</span>':''}</div>
+          <div style="font-size:11px;color:#8896a8">${e.dept} — ${e.center}</div>
+        </div>
+        ${e.role !== 'manager' ? `<button onclick="removeEmployee('${e.username}')" style="background:none;border:1px solid #e2e6ef;border-radius:6px;padding:4px 8px;font-size:10px;cursor:pointer;color:#c0392b">حذف</button>` : ''}
+      </div>
+    `).join('');
+  }
+}
+
+async function approveEmployee(username) {
+  if (!window.EmployeesDB) return;
+  var emp = await window.EmployeesDB.getByUsername(username);
+  if (!emp) return;
+  emp.pending = false;
+  await window.EmployeesDB.save(emp);
+  toast('success', 'تمت الموافقة', emp.name + ' يمكنه الآن تسجيل الدخول');
+  showEmployeesManager();
+}
+
+async function rejectEmployee(username) {
+  if (!window.EmployeesDB) return;
+  var emp = await window.EmployeesDB.getByUsername(username);
+  if (!emp) return;
+  // نحذف السجل من Firebase
+  try {
+    const { deleteDoc, doc: _doc } = await import('https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js');
+  } catch(e) {}
+  // fallback: نضع rejected flag
+  emp.pending = false; emp.rejected = true;
+  await window.EmployeesDB.save(emp);
+  toast('warn', 'تم الرفض', 'تم رفض طلب ' + emp.name);
+  showEmployeesManager();
+}
+
+async function removeEmployee(username) {
+  if (!confirm('هل أنت متأكد من حذف هذا الموظف؟')) return;
+  if (!window.EmployeesDB) return;
+  var emp = await window.EmployeesDB.getByUsername(username);
+  if (!emp) return;
+  emp.rejected = true; emp.pending = false;
+  await window.EmployeesDB.save(emp);
+  toast('warn', 'تم الحذف', 'تم حذف الموظف ' + emp.name);
+  showEmployeesManager();
+}
+</script>
+
+<script>
+
+// ============================================================
+// COMPLAINTS — Firebase + UI
+// ============================================================
+var currentComplaintId = null;
+var currentComplaintFilter = 'all';
+
+var COMPLAINT_STATUS = {
+  'new':      '<span class="complaint-badge cbadge-new">🆕 جديدة</span>',
+  'assigned': '<span class="complaint-badge cbadge-assigned">📋 محالة</span>',
+  'resolved': '<span class="complaint-badge cbadge-resolved">✅ منتهية</span>',
+  'closed':   '<span class="complaint-badge cbadge-closed">🔒 مغلقة</span>'
+};
+
+var COMPLAINT_STEPS_LABELS = {
+  'new':      'تم استلام الشكوى',
+  'assigned': 'تم إحالتها للجهة المختصة',
+  'resolved': 'تمت المعالجة',
+  'closed':   'صدر القرار النهائي'
+};
+
+// جلب الشكاوى من Firebase
+
+function parseFirestoreDoc(fields) {
+  var out = {};
+  Object.keys(fields).forEach(function(k) {
+    out[k] = parseFirestoreValue(fields[k]);
+  });
+  return out;
+}
+function parseFirestoreValue(v) {
+  if (!v) return null;
+  if (v.stringValue  !== undefined) return v.stringValue;
+  if (v.integerValue !== undefined) return parseInt(v.integerValue);
+  if (v.booleanValue !== undefined) return v.booleanValue;
+  if (v.arrayValue) {
+    return (v.arrayValue.values || []).map(function(item) {
+      return parseFirestoreValue(item);
+    });
+  }
+  if (v.mapValue) return parseFirestoreDoc(v.mapValue.fields || {});
+  return null;
+}
+
+async function loadComplaints() {
+  var FB_C_ALL = 'https://firestore.googleapis.com/v1/projects/petitions-wadi/databases/(default)/documents/complaints';
+  try {
+    var res = await fetch(FB_C_ALL);
+    var data = await res.json();
+    console.log('loadComplaints raw:', JSON.stringify(data).substring(0, 500));
+    if (data.error) { console.warn('Firestore error:', data.error); return []; }
+    if (!data.documents) {
+      console.warn('No documents field — keys:', Object.keys(data));
+      return [];
+    }
+    return data.documents.map(function(docItem) {
+      return parseFirestoreDoc(docItem.fields || {});
+    });
+  } catch(e) { console.warn('loadComplaints error:', e); return []; }
+}
+
+// بناء قائمة الشكاوى
+async function buildComplaintsList() {
+  var container = document.getElementById('complaints-list-container');
+  if (!container) return;
+  container.innerHTML = '<div style="text-align:center;color:var(--text3);padding:40px 0;font-size:13px">جارٍ التحميل...</div>';
+
+  var all = await loadComplaints();
+  console.log('complaints parsed:', all.length, all.length ? JSON.stringify(all[0]).substring(0,200) : 'empty');
+
+  // فلترة حسب الـ role
+  var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager';
+  console.log('isAdmin:', isAdmin, 'CURRENT_USER:', CURRENT_USER ? CURRENT_USER.role : 'null');
+  if (!isAdmin) {
+    all = all.filter(function(c) { return c.assignedDept === (CURRENT_USER ? CURRENT_USER.dept : ''); });
+  }
+
+  // فلترة حسب الـ tab
+  if (currentComplaintFilter !== 'all') {
+    all = all.filter(function(c) { return c.status === currentComplaintFilter; });
+  }
+
+  // ترتيب من الأحدث
+  all.sort(function(a, b) { return (b.createdAt || '') > (a.createdAt || '') ? 1 : -1; });
+
+  if (!all.length) {
+    container.innerHTML = '<div style="text-align:center;color:var(--text3);padding:40px 0;font-size:13px">لا توجد شكاوى</div>';
+    return;
+  }
+
+  console.log('rendering', all.length, 'complaints, container:', container ? 'found' : 'NOT FOUND');
+  container.innerHTML = all.map(function(c) {
+    var isSelected = c.id === currentComplaintId;
+    console.log('card:', c.id, c.status, c.type);
+    return (
+      '<div class="complaint-card' + (isSelected ? ' selected' : '') + '" onclick="openComplaint(\'' + c.id + '\')">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">' +
+          '<span style="font-family:monospace;font-size:11px;color:var(--primary);font-weight:700">' + c.id + '</span>' +
+          (COMPLAINT_STATUS[c.status] || '') +
+        '</div>' +
+        '<div style="font-size:12px;color:var(--text);font-weight:600;margin-bottom:2px">' + (c.type || '') + '</div>' +
+        '<div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (c.text || '').substring(0, 60) + '</div>' +
+        '<div style="font-size:10px;color:var(--text3);margin-top:4px">' + timeAgo(c.createdAt) + '</div>' +
+      '</div>'
+    );
+  }).join('');
+}
+
+function filterComplaints(filter, btn) {
+  currentComplaintFilter = filter;
+  document.querySelectorAll('.complaint-filter-btn').forEach(function(b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  buildComplaintsList();
+}
+
+// فتح تفاصيل شكوى
+async function openComplaint(id) {
+  currentComplaintId = id;
+  buildComplaintsList();
+
+  var panel = document.getElementById('complaint-detail-panel');
+  if (!panel) return;
+  panel.innerHTML = '<div style="text-align:center;color:var(--text3);padding:60px;font-size:13px">جارٍ التحميل...</div>';
+
+  var all = await loadComplaints();
+  var c = all.find(function(x) { return x.id === id; });
+  if (!c) return;
+
+  var canAssign = isManagerMode || (CURRENT_USER && CURRENT_USER.role === 'manager');
+  var canClose  = canAssign;
+  var isResolved = c.status === 'resolved';
+
+  // قائمة الأقسام
+  var depts = [
+    'الشباك الأمامي','موظف الحصر','موظف التقنين','صندوق الأراضي',
+    'هندسية — تخطيط عمراني','هندسية — تنظيم','هندسية — إشغالات',
+    'هندسية — محلات','هندسية — متغيرات مكانية','هندسية — إزالات'
+  ];
+
+  var stepsHTML = (c.steps || []).map(function(s) {
+    return (
+      '<div class="complaint-step">' +
+        '<div class="complaint-step-dot"></div>' +
+        '<div>' +
+          '<div style="font-size:12px;font-weight:600;color:var(--text)">' + (COMPLAINT_STEPS_LABELS[s.s] || s.s) + '</div>' +
+          (s.note ? '<div style="font-size:11px;color:var(--text2);margin-top:2px">' + s.note + '</div>' : '') +
+          '<div style="font-size:10px;color:var(--text3);margin-top:2px">' + (s.by || '') + ' — ' + timeAgo(s.t) + '</div>' +
+        '</div>' +
+      '</div>'
+    );
+  }).join('');
+
+  panel.innerHTML =
+    '<div style="max-width:700px">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">' +
+        '<div style="font-family:monospace;font-size:13px;font-weight:700;color:var(--primary)">' + c.id + '</div>' +
+        (COMPLAINT_STATUS[c.status] || '') +
+      '</div>' +
+
+      '<div style="background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">' +
+        '<div style="font-size:11px;color:var(--text3);margin-bottom:4px">نوع الشكوى</div>' +
+        '<div style="font-size:14px;font-weight:600;color:var(--text)">' + (c.type || '') + '</div>' +
+      '</div>' +
+
+      '<div style="background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">' +
+        '<div style="font-size:11px;color:var(--text3);margin-bottom:6px">نص الشكوى</div>' +
+        '<div style="font-size:13px;color:var(--text);line-height:1.7">' + (c.text || '') + '</div>' +
+      '</div>' +
+
+      (c.assignedDept ? '<div style="background:#FFF3CD;border:0.5px solid #ffc107;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#856404">📋 محالة إلى: <b>' + c.assignedDept + '</b></div>' : '') +
+
+      '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">سجل الأحداث</div>' +
+      '<div class="complaint-steps">' + stepsHTML + '</div>' +
+
+      // أدوات المدير
+      (canAssign && c.status === 'new' ? (
+        '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
+          '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">📋 إحالة الشكوى</div>' +
+          '<select id="assign-dept-select" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px">' +
+            '<option value="">اختر القسم أو الإدارة</option>' +
+            depts.map(function(dep) { return '<option value="' + dep + '">' + dep + '</option>'; }).join('') +
+          '</select>' +
+          '<button class="btn btn-primary btn-sm" onclick="assignComplaint(\'' + c.id + '\')" style="width:100%">إحالة الشكوى ✓</button>' +
+        '</div>'
+      ) : '') +
+
+      (canAssign && c.status === 'assigned' ? (
+        '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
+          '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">✅ إنهاء المعالجة</div>' +
+          '<textarea id="resolve-note" placeholder="ملاحظات المعالجة..." rows="3" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px;resize:vertical;box-sizing:border-box"></textarea>' +
+          '<button class="btn btn-primary btn-sm" onclick="resolveComplaint(\'' + c.id + '\')" style="width:100%">تم المعالجة ✓</button>' +
+        '</div>'
+      ) : '') +
+
+      (canClose && c.status === 'resolved' ? (
+        '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
+          '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">🔒 القرار النهائي (رئيس المركز)</div>' +
+          '<textarea id="close-note" placeholder="القرار النهائي في الشكوى..." rows="3" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px;resize:vertical;box-sizing:border-box"></textarea>' +
+          '<button class="btn btn-primary btn-sm" onclick="closeComplaint(\'' + c.id + '\')" style="width:100%">إغلاق الشكوى ✓</button>' +
+        '</div>'
+      ) : '') +
+
+    '</div>';
+}
+
+// إحالة الشكوى
+async function assignComplaint(id) {
+  var dept = document.getElementById('assign-dept-select').value;
+  if (!dept) { toast('warn','تنبيه','اختر القسم أولاً'); return; }
+
+  await updateComplaintStatus(id, 'assigned', {
+    assignedDept: dept,
+    stepNote: 'أُحيلت إلى: ' + dept
+  });
+  toast('success','تمت الإحالة','تم إحالة الشكوى إلى ' + dept);
+
+  // إشعار المواطن
+  var all = await loadComplaints();
+  var c = all.find(function(x) { return x.id === id; });
+  if (c && c.telegramChatId) {
+    sendTelegramMsg(c.telegramChatId,
+      '📋 تحديث شكواك\n\n' +
+      'رقم الشكوى: ' + id + '\n' +
+      'تم إحالة شكواك إلى: ' + dept + '\n' +
+      'جارٍ العمل على حلها وسيتم إخطارك بالنتيجة.'
+    );
+  }
+  openComplaint(id);
+}
+
+// إنهاء المعالجة
+async function resolveComplaint(id) {
+  var note = (document.getElementById('resolve-note').value || '').trim();
+  if (!note) { toast('warn','تنبيه','أدخل ملاحظات المعالجة'); return; }
+
+  await updateComplaintStatus(id, 'resolved', { stepNote: note });
+  toast('success','تمت المعالجة','انتظر القرار النهائي من رئيس المركز');
+
+  var all = await loadComplaints();
+  var c = all.find(function(x) { return x.id === id; });
+  if (c && c.telegramChatId) {
+    sendTelegramMsg(c.telegramChatId,
+      '✅ تحديث شكواك\n\n' +
+      'رقم الشكوى: ' + id + '\n' +
+      'تمت معالجة شكواك وجارٍ اعتماد القرار النهائي من رئيس المركز.\n' +
+      'سيتم إخطارك بالقرار قريباً.'
+    );
+  }
+  openComplaint(id);
+}
+
+// إغلاق الشكوى بالقرار النهائي
+async function closeComplaint(id) {
+  var note = (document.getElementById('close-note').value || '').trim();
+  if (!note) { toast('warn','تنبيه','أدخل القرار النهائي'); return; }
+
+  await updateComplaintStatus(id, 'closed', { stepNote: note });
+  toast('success','تم الإغلاق','تم إغلاق الشكوى بالقرار النهائي');
+
+  var all = await loadComplaints();
+  var c = all.find(function(x) { return x.id === id; });
+  if (c && c.telegramChatId) {
+    sendTelegramMsg(c.telegramChatId,
+      '🔒 القرار النهائي في شكواك\n\n' +
+      'رقم الشكوى: ' + id + '\n' +
+      'القرار: ' + note + '\n\n' +
+      'شكراً لتواصلك مع المركز التكنولوجي.'
+    );
+  }
+  openComplaint(id);
+}
+
+// تحديث الحالة في Firebase
+async function updateComplaintStatus(id, newStatus, extra) {
+  var FB_C = 'https://firestore.googleapis.com/v1/projects/petitions-wadi/databases/(default)/documents/complaints/' + id;
+  try {
+    // جلب الشكوى الحالية
+    var getRes = await fetch(FB_C);
+    var current = await getRes.json();
+    if (!current.fields) return;
+
+    var now = new Date().toISOString();
+    var existingSteps = (current.fields.steps && current.fields.steps.arrayValue && current.fields.steps.arrayValue.values) || [];
+    var newStep = { mapValue: { fields: {
+      s:    { stringValue: newStatus },
+      t:    { stringValue: now },
+      by:   { stringValue: CURRENT_USER ? CURRENT_USER.name : 'النظام' },
+      note: { stringValue: extra.stepNote || '' }
+    }}};
+
+    var updatedFields = Object.assign({}, current.fields);
+    updatedFields.status    = { stringValue: newStatus };
+    updatedFields.updatedAt = { stringValue: now };
+    updatedFields.steps     = { arrayValue: { values: existingSteps.concat([newStep]) } };
+    if (extra.assignedDept) updatedFields.assignedDept = { stringValue: extra.assignedDept };
+
+    await fetch(FB_C, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: updatedFields })
+    });
+    buildComplaintsList();
+  } catch(e) { console.warn('updateComplaintStatus error:', e); toast('error','خطأ','تعذر تحديث الشكوى'); }
+}
+
+// إرسال إشعار تليجرام
+function sendTelegramMsg(chatId, text) {
+  var BOT_TOKEN = '8757928092:AAF31wqeBDHXKkswZiYJIqAhL0S_d2h70OI';
+  fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text: text })
+  }).catch(function(e) { console.warn('Telegram notify error:', e); });
+}
+
+</script>
+</body>
+</htm
+<!-- ============================================================
+     COMPLAINTS PAGE
+     ============================================================ -->
+
+
+l
