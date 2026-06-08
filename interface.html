@@ -7234,26 +7234,22 @@ async function buildComplaintsList() {
   // فلترة حسب الـ role
   // isManagerMode = المدير بيتصفح بوضع المدير → يشوف الكل
   // غيره → يشوف assigned لقسمه
-  // المدير يشوف الكل دايماً — بغض النظر عن currentEmployee
-  // الموظف يشوف assigned لقسمه بس
-  var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager';
-  var viewDept = isAdmin ? '' : (CURRENT_USER ? CURRENT_USER.dept : '');
-  console.log('isAdmin:', isAdmin, 'viewDept:', viewDept, 'role:', CURRENT_USER ? CURRENT_USER.role : 'null');
-  // نفس منطق الطلبات بالظبط:
-  // isManagerMode = المدير يشوف الكل
-  // غيره: يشوف assigned لقسمه بس
-  console.log('Before filter:', all.length, 'isAdmin:', isAdmin, 'statuses:', all.map(function(c){return c.status+'/'+c.assignedDept;}));
-  if (!isAdmin) {
-    all = all.filter(function(c) {
-      return c.status === 'assigned' && c.assignedDept === viewDept;
-    });
-  }
+  // ============================================================
+  // فلتر الشكاوى — نفس منطق الطلبات بالظبط:
+  // isManagerMode → يشوف الكل
+  // غيره → يشوف assigned لـ currentEmployee بس
+  // ============================================================
+  all = all.filter(function(c) {
+    if (isManagerMode) return true;
+    return c.status === 'assigned' && c.assignedDept === currentEmployee;
+  });
 
-  // فلترة الـ tab للمدير بس
-  if (isAdmin && currentComplaintFilter !== 'all') {
-    all = all.filter(function(c) { return c.status === currentComplaintFilter; });
+  // فلتر الـ tab
+  if (currentComplaintFilter !== 'all') {
+    if (isManagerMode) {
+      all = all.filter(function(c) { return c.status === currentComplaintFilter; });
+    }
   }
-  console.log('After filter:', all.length);
 
   // ترتيب من الأحدث
   all.sort(function(a, b) { return (b.createdAt || '') > (a.createdAt || '') ? 1 : -1; });
@@ -7301,7 +7297,7 @@ async function openComplaint(id) {
   var c = all.find(function(x) { return x.id === id; });
   if (!c) return;
 
-  var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager';
+  var isAdmin = isManagerMode;
   var canAssign = isAdmin;
   var canClose  = isAdmin;
   var isResolved = c.status === 'resolved';
@@ -7791,26 +7787,22 @@ async function buildComplaintsList() {
   // فلترة حسب الـ role
   // isManagerMode = المدير بيتصفح بوضع المدير → يشوف الكل
   // غيره → يشوف assigned لقسمه
-  // المدير يشوف الكل دايماً — بغض النظر عن currentEmployee
-  // الموظف يشوف assigned لقسمه بس
-  var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager';
-  var viewDept = isAdmin ? '' : (CURRENT_USER ? CURRENT_USER.dept : '');
-  console.log('isAdmin:', isAdmin, 'viewDept:', viewDept, 'role:', CURRENT_USER ? CURRENT_USER.role : 'null');
-  // نفس منطق الطلبات بالظبط:
-  // isManagerMode = المدير يشوف الكل
-  // غيره: يشوف assigned لقسمه بس
-  console.log('Before filter:', all.length, 'isAdmin:', isAdmin, 'statuses:', all.map(function(c){return c.status+'/'+c.assignedDept;}));
-  if (!isAdmin) {
-    all = all.filter(function(c) {
-      return c.status === 'assigned' && c.assignedDept === viewDept;
-    });
-  }
+  // ============================================================
+  // فلتر الشكاوى — نفس منطق الطلبات بالظبط:
+  // isManagerMode → يشوف الكل
+  // غيره → يشوف assigned لـ currentEmployee بس
+  // ============================================================
+  all = all.filter(function(c) {
+    if (isManagerMode) return true;
+    return c.status === 'assigned' && c.assignedDept === currentEmployee;
+  });
 
-  // فلترة الـ tab للمدير بس
-  if (isAdmin && currentComplaintFilter !== 'all') {
-    all = all.filter(function(c) { return c.status === currentComplaintFilter; });
+  // فلتر الـ tab
+  if (currentComplaintFilter !== 'all') {
+    if (isManagerMode) {
+      all = all.filter(function(c) { return c.status === currentComplaintFilter; });
+    }
   }
-  console.log('After filter:', all.length);
 
   // ترتيب من الأحدث
   all.sort(function(a, b) { return (b.createdAt || '') > (a.createdAt || '') ? 1 : -1; });
@@ -7858,7 +7850,7 @@ async function openComplaint(id) {
   var c = all.find(function(x) { return x.id === id; });
   if (!c) return;
 
-  var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager';
+  var isAdmin = isManagerMode;
   var canAssign = isAdmin;
   var canClose  = isAdmin;
   var isResolved = c.status === 'resolved';
