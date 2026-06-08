@@ -7234,10 +7234,11 @@ async function buildComplaintsList() {
   // فلترة حسب الـ role
   // isManagerMode = المدير بيتصفح بوضع المدير → يشوف الكل
   // غيره → يشوف assigned لقسمه
-  var isAdmin = isManagerMode;
-  // currentEmployee = نفس قيمة assignedDept في الشكاوى
+  // المدير: role=manager أو isManagerMode
+  // الموظف العادي: role=employee
+  var isAdmin = isManagerMode || (CURRENT_USER && CURRENT_USER.role === 'manager' && currentEmployee === CURRENT_USER.name);
   var viewDept = isAdmin ? '' : currentEmployee;
-  console.log('isAdmin:', isAdmin, 'viewDept:', viewDept);
+  console.log('isAdmin:', isAdmin, 'isManagerMode:', isManagerMode, 'role:', CURRENT_USER ? CURRENT_USER.role : 'null', 'currentEmployee:', currentEmployee);
   // نفس منطق الطلبات بالظبط:
   // isManagerMode = المدير يشوف الكل
   // غيره: يشوف assigned لقسمه بس
@@ -7790,10 +7791,11 @@ async function buildComplaintsList() {
   // فلترة حسب الـ role
   // isManagerMode = المدير بيتصفح بوضع المدير → يشوف الكل
   // غيره → يشوف assigned لقسمه
-  var isAdmin = isManagerMode;
-  // currentEmployee = نفس قيمة assignedDept في الشكاوى
+  // المدير: role=manager أو isManagerMode
+  // الموظف العادي: role=employee
+  var isAdmin = isManagerMode || (CURRENT_USER && CURRENT_USER.role === 'manager' && currentEmployee === CURRENT_USER.name);
   var viewDept = isAdmin ? '' : currentEmployee;
-  console.log('isAdmin:', isAdmin, 'viewDept:', viewDept);
+  console.log('isAdmin:', isAdmin, 'isManagerMode:', isManagerMode, 'role:', CURRENT_USER ? CURRENT_USER.role : 'null', 'currentEmployee:', currentEmployee);
   // نفس منطق الطلبات بالظبط:
   // isManagerMode = المدير يشوف الكل
   // غيره: يشوف assigned لقسمه بس
