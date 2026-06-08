@@ -7305,8 +7305,10 @@ async function openComplaint(id) {
   var c = all.find(function(x) { return x.id === id; });
   if (!c) return;
 
-  var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager' &&
-    (currentEmployee === CURRENT_USER.name || !currentEmployee);
+  var viewingAsEmployee = CURRENT_USER && CURRENT_USER.role === 'manager' &&
+    currentEmployee !== CURRENT_USER.name &&
+    currentEmployee !== FRONT_DESK_NAME;
+  var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager' && !viewingAsEmployee;
   var canAssign = isAdmin;
   var canClose  = isAdmin;
   var isResolved = c.status === 'resolved';
@@ -7867,8 +7869,10 @@ async function openComplaint(id) {
   var c = all.find(function(x) { return x.id === id; });
   if (!c) return;
 
-  var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager' &&
-    (currentEmployee === CURRENT_USER.name || !currentEmployee);
+  var viewingAsEmployee = CURRENT_USER && CURRENT_USER.role === 'manager' &&
+    currentEmployee !== CURRENT_USER.name &&
+    currentEmployee !== FRONT_DESK_NAME;
+  var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager' && !viewingAsEmployee;
   var canAssign = isAdmin;
   var canClose  = isAdmin;
   var isResolved = c.status === 'resolved';
