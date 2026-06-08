@@ -7267,7 +7267,7 @@ async function openComplaint(id) {
             '<option value="">اختر القسم أو الإدارة</option>' +
             depts.map(function(dep) { return '<option value="' + dep + '">' + dep + '</option>'; }).join('') +
           '</select>' +
-          '<button class="btn btn-primary btn-sm" onclick="assignComplaint('' + c.id + '')" style="width:100%">إحالة الشكوى ✓</button>' +
+          '<button class="btn btn-primary btn-sm" onclick="assignComplaint(\'' + c.id + '\')" style="width:100%">إحالة الشكوى ✓</button>' +
         '</div>'
       ) : '') +
 
@@ -7275,7 +7275,7 @@ async function openComplaint(id) {
         '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
           '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">✅ إنهاء المعالجة</div>' +
           '<textarea id="resolve-note" placeholder="ملاحظات المعالجة..." rows="3" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px;resize:vertical;box-sizing:border-box"></textarea>' +
-          '<button class="btn btn-primary btn-sm" onclick="resolveComplaint('' + c.id + '')" style="width:100%">تم المعالجة ✓</button>' +
+          '<button class="btn btn-primary btn-sm" onclick="resolveComplaint(\'' + c.id + '\')" style="width:100%">تم المعالجة ✓</button>' +
         '</div>'
       ) : '') +
 
@@ -7283,7 +7283,7 @@ async function openComplaint(id) {
         '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
           '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">🔒 القرار النهائي (رئيس المركز)</div>' +
           '<textarea id="close-note" placeholder="القرار النهائي في الشكوى..." rows="3" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px;resize:vertical;box-sizing:border-box"></textarea>' +
-          '<button class="btn btn-primary btn-sm" onclick="closeComplaint('' + c.id + '')" style="width:100%">إغلاق الشكوى ✓</button>' +
+          '<button class="btn btn-primary btn-sm" onclick="closeComplaint(\'' + c.id + '\')" style="width:100%">إغلاق الشكوى ✓</button>' +
         '</div>'
       ) : '') +
 
