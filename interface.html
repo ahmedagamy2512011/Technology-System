@@ -302,12 +302,40 @@ body {
 /* ===== SIDEBAR ===== */
 .sidebar {
   width: 290px;
+  min-width: 290px;
   background: var(--surface);
   border-left: 1px solid var(--border);
   display: flex; flex-direction: column;
   flex-shrink: 0;
   overflow: hidden;
+  position: relative;
+  transition: width 0.25s ease, min-width 0.25s ease;
 }
+.sidebar.collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  overflow: hidden;
+}
+.sidebar-toggle-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: calc(290px - 14px);
+  width: 28px; height: 28px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 11px;
+  box-shadow: 0 2px 8px rgba(26,58,107,0.12);
+  z-index: 20;
+  transition: background 0.15s, color 0.15s;
+  color: var(--text2);
+  flex-shrink: 0;
+  line-height: 1;
+}
+.sidebar-toggle-btn:hover { background: var(--primary); color: white; }
 
 .sidebar-header {
   padding: 12px 16px;
@@ -400,6 +428,7 @@ body {
 .content {
   flex: 1; overflow-y: auto; padding: 20px;
   background: var(--bg);
+  min-width: 0;
 }
 .content::-webkit-scrollbar { width: 5px; }
 .content::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
@@ -407,6 +436,7 @@ body {
 /* ===== WELCOME STATE ===== */
 .welcome-state {
   height: 100%; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
   align-items: center; justify-content: center;
   color: var(--text3); text-align: center;
   gap: 12px;
@@ -892,6 +922,96 @@ body {
 .fchat-send-btn { width:34px; height:34px; border-radius:50%; background:var(--primary); color:white; border:none; cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .fchat-send-btn:hover { background:var(--primary2); }
 
+
+
+/* ===== COMPLAINTS PAGE ===== */
+.complaint-card {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+  cursor: pointer; transition: box-shadow 0.15s;
+}
+.complaint-card:hover { box-shadow: var(--shadow-sm); }
+.complaint-card.selected { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,58,107,0.15); }
+.complaint-badge {
+  display: inline-block; font-size: 10px; padding: 2px 8px;
+  border-radius: 20px; font-weight: 600;
+}
+.cbadge-new      { background:#EEF1F9; color:#1a3a6b; }
+.cbadge-assigned { background:#FFF3CD; color:#856404; }
+.cbadge-resolved { background:#D1ECF1; color:#0c5460; }
+.cbadge-closed   { background:#D4EDDA; color:#155724; }
+.complaint-detail { flex:1; overflow-y:auto; padding:20px; background:var(--bg); min-width:0; }
+.complaint-steps { margin-top:16px; }
+.complaint-step {
+  display:flex; gap:10px; align-items:flex-start;
+  padding:8px 0; border-bottom:0.5px solid var(--border3);
+}
+.complaint-step-dot {
+  width:8px; height:8px; border-radius:50%; background:var(--primary);
+  flex-shrink:0; margin-top:5px;
+}
+
+/* ============================================================
+   LOGIN SCREEN
+   ============================================================ */
+#login-screen {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; background: linear-gradient(135deg, #0f2444 0%, #1a3a6b 60%, #1e4d8c 100%);
+  position: fixed; inset: 0; z-index: 99999;
+  font-family: 'Cairo', sans-serif;
+}
+#login-screen.hidden { display: none; }
+
+.login-box {
+  background: #fff; border-radius: 20px; padding: 40px 36px 32px;
+  width: 100%; max-width: 400px; box-shadow: 0 32px 80px rgba(0,0,0,0.35);
+  direction: rtl; position: relative; overflow: hidden;
+}
+.login-box::before {
+  content: ''; position: absolute; top: 0; right: 0; left: 0; height: 5px;
+  background: linear-gradient(90deg, #1a3a6b, #2563eb, #1a3a6b);
+}
+.login-logo { text-align: center; margin-bottom: 24px; }
+.login-logo .emblem { font-size: 44px; display: block; margin-bottom: 6px; }
+.login-logo h2 { font-size: 16px; font-weight: 700; color: #1a3a6b; margin: 0; line-height: 1.4; }
+.login-logo span { font-size: 11px; color: #8896a8; }
+
+.login-tabs { display: flex; gap: 0; margin-bottom: 24px; border-radius: 10px; overflow: hidden; border: 1px solid #e2e6ef; }
+.login-tab { flex: 1; padding: 9px; text-align: center; font-size: 12px; font-weight: 600;
+  cursor: pointer; background: #f0f2f7; color: #8896a8; transition: all .2s; border: none; font-family: 'Cairo', sans-serif; }
+.login-tab.active { background: #1a3a6b; color: white; }
+
+.login-field { margin-bottom: 14px; }
+.login-field label { display: block; font-size: 11px; font-weight: 600; color: #4a5568; margin-bottom: 5px; }
+.login-field input, .login-field select {
+  width: 100%; padding: 10px 12px; border: 1.5px solid #e2e6ef; border-radius: 10px;
+  font-size: 13px; font-family: 'Cairo', sans-serif; outline: none; transition: border .2s;
+  box-sizing: border-box; background: #f8f9fc; color: #1a2332;
+}
+.login-field input:focus, .login-field select:focus { border-color: #1a3a6b; background: #fff; }
+
+.login-btn {
+  width: 100%; padding: 12px; background: #1a3a6b; color: white; border: none;
+  border-radius: 10px; font-size: 14px; font-weight: 700; font-family: 'Cairo', sans-serif;
+  cursor: pointer; transition: background .2s; margin-top: 4px;
+}
+.login-btn:hover { background: #142d55; }
+.login-btn:disabled { background: #8896a8; cursor: not-allowed; }
+
+.login-msg { font-size: 12px; text-align: center; margin-top: 10px; min-height: 18px;
+  padding: 8px 12px; border-radius: 8px; display: none; }
+.login-msg.error { display: block; background: #fdecea; color: #c0392b; }
+.login-msg.success { display: block; background: #e6f5ef; color: #0f7b55; }
+.login-msg.info { display: block; background: #eef1f9; color: #1a3a6b; }
+
+.login-fields-reg { display: none; }
+.login-fields-reg.show { display: block; }
+
+/* pending badge على صفحة المدير */
+#pending-emp-badge {
+  background: var(--danger); color: white; font-size: 9px; padding: 2px 6px;
+  border-radius: 10px; font-weight: 800; display: none; margin-right: auto;
+}
 </style>
   <!-- Firebase SDK -->
   <script type="module">
@@ -913,6 +1033,7 @@ body {
     // =============================================
     // Firebase DB Layer — يعمل جنب localStorage
     // =============================================
+    window._db = db;
     window.FirebaseDB = {
 
       // حفظ طلب في Firestore
@@ -1143,10 +1264,166 @@ body {
       }, 500);
     });
 
+
+    // ============================================================
+    // EMPLOYEES — Firebase Collection
+    // ============================================================
+    window.EmployeesDB = {
+
+      // sha256 hash للـ password
+      async hashPassword(password) {
+        const enc = new TextEncoder().encode(password);
+        const buf = await crypto.subtle.digest('SHA-256', enc);
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+      },
+
+      // جلب موظف بـ username
+      async getByUsername(username) {
+        try {
+          const snap = await getDoc(doc(db, 'employees', username.toLowerCase().trim()));
+          return snap.exists() ? snap.data() : null;
+        } catch(e) { console.warn('getByUsername error:', e); return null; }
+      },
+
+      // حفظ/تحديث موظف
+      async save(emp) {
+        try {
+          await setDoc(doc(db, 'employees', emp.username.toLowerCase().trim()), emp);
+          return true;
+        } catch(e) { console.warn('save employee error:', e); return false; }
+      },
+
+      // جلب كل الموظفين المعلقين (pending)
+      async getPending() {
+        try {
+          const snap = await getDocs(collection(db, 'employees'));
+          return snap.docs.map(d => d.data()).filter(e => e.pending === true);
+        } catch(e) { return []; }
+      },
+
+      // جلب كل الموظفين
+      async getAll() {
+        try {
+          const snap = await getDocs(collection(db, 'employees'));
+          return snap.docs.map(d => d.data());
+        } catch(e) { return []; }
+      },
+
+      // seed المدير الأساسي لو مفيش حسابات
+      async seedAdminIfEmpty() {
+        try {
+          const snap = await getDocs(collection(db, 'employees'));
+          if (snap.empty) {
+            const hash = await this.hashPassword('1234');
+            await this.save({
+              username: 'admin',
+              passwordHash: hash,
+              name: 'مدير النظام',
+              dept: 'الإدارة',
+              center: 'الخارجة',
+              role: 'manager',
+              pending: false,
+              createdAt: new Date().toISOString()
+            });
+            console.log('✅ Admin seeded');
+          }
+        } catch(e) { console.warn('seedAdmin error:', e); }
+      },
+
+      // real-time listener للـ pending badge
+      watchPending(callback) {
+        return onSnapshot(collection(db, 'employees'), snap => {
+          const pending = snap.docs.map(d => d.data()).filter(e => e.pending === true);
+          callback(pending.length);
+        });
+      }
+    };
+
+    // Seed المدير عند التشغيل
+    window.EmployeesDB.seedAdminIfEmpty();
+
     console.log('✅ Firebase connected — petitions-wadi');
   </script>
 </head>
 <body>
+
+<!-- ============================================================
+     LOGIN SCREEN
+     ============================================================ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <span class="emblem">🏛️</span>
+      <h2>ديوان عام محافظة الوادي الجديد</h2>
+      <span>نظام إدارة الطلبات والمكاتبات الإدارية</span>
+    </div>
+
+    <div class="login-tabs">
+      <button class="login-tab active" onclick="switchLoginTab('login')">تسجيل الدخول</button>
+      <button class="login-tab" onclick="switchLoginTab('register')">حساب جديد</button>
+    </div>
+
+    <!-- تسجيل الدخول -->
+    <div id="login-fields-login">
+      <div class="login-field">
+        <label>اسم المستخدم</label>
+        <input type="text" id="login-username" placeholder="أدخل اسم المستخدم" autocomplete="username" />
+      </div>
+      <div class="login-field">
+        <label>كلمة المرور</label>
+        <input type="password" id="login-password" placeholder="أدخل كلمة المرور"
+               autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()" />
+      </div>
+      <button class="login-btn" id="login-btn" onclick="doLogin()">دخول</button>
+    </div>
+
+    <!-- تسجيل حساب جديد -->
+    <div id="login-fields-register" class="login-fields-reg">
+      <div class="login-field">
+        <label>الاسم الكامل</label>
+        <input type="text" id="reg-name" placeholder="الاسم الرباعي" />
+      </div>
+      <div class="login-field">
+        <label>اسم المستخدم</label>
+        <input type="text" id="reg-username" placeholder="بالإنجليزية أو الأرقام" dir="ltr" />
+      </div>
+      <div class="login-field">
+        <label>كلمة المرور</label>
+        <input type="password" id="reg-password" placeholder="6 أحرف على الأقل" dir="ltr" />
+      </div>
+      <div class="login-field">
+        <label>القسم / الوظيفة</label>
+        <select id="reg-dept">
+          <option value="">اختر القسم</option>
+          <option value="الشباك الأمامي">الشباك الأمامي</option>
+          <option value="موظف الحصر">موظف الحصر</option>
+          <option value="موظف التقنين">موظف التقنين</option>
+          <option value="صندوق الأراضي">صندوق الأراضي</option>
+          <option value="الإدارة الهندسية — قسم التخطيط العمراني">هندسية — تخطيط عمراني</option>
+          <option value="الإدارة الهندسية — قسم التنظيم">هندسية — تنظيم</option>
+          <option value="الإدارة الهندسية — قسم الإشغالات">هندسية — إشغالات</option>
+          <option value="الإدارة الهندسية — قسم المحلات">هندسية — محلات</option>
+          <option value="الإدارة الهندسية — قسم المتغيرات المكانية">هندسية — متغيرات مكانية</option>
+          <option value="الإدارة الهندسية — قسم الإزالات">هندسية — إزالات</option>
+        </select>
+      </div>
+      <div class="login-field">
+        <label>المركز</label>
+        <select id="reg-center">
+          <option value="">اختر المركز</option>
+          <option value="الخارجة">الخارجة</option>
+          <option value="الداخلة">الداخلة</option>
+          <option value="الفرافرة">الفرافرة</option>
+          <option value="باريس">باريس</option>
+          <option value="بلاط">بلاط</option>
+        </select>
+      </div>
+      <button class="login-btn" id="register-btn" onclick="doRegister()">إرسال طلب التسجيل</button>
+    </div>
+
+    <div id="login-msg" class="login-msg"></div>
+  </div>
+</div>
 
 <!-- TOP BAR -->
 <header class="topbar">
@@ -1164,6 +1441,7 @@ body {
     <button class="topbar-btn" onclick="showMain('letters', this)">✉️ المكاتبات</button>
     <button class="topbar-btn" onclick="showMain('inquiries', this)">💬 الاستفسارات</button>
     <button class="topbar-btn" onclick="showMain('reports', this)">📈 التقارير</button>
+    <button class="topbar-btn" id="complaints-tab-btn" onclick="showMain('complaints', this)">📣 الشكاوى</button>
   </nav>
 
   <div class="topbar-user">
@@ -1217,7 +1495,12 @@ body {
         <div class="user-dropdown-item" onclick="selectEmployee('الإدارة الهندسية — قسم الإزالات'); closeUserMenu()">هندسية — إزالات</div>
         <div style="height:1px;background:var(--border);margin:2px 0"></div>
         <div class="user-dropdown-item" id="mode-switch-btn" onclick="toggleManagerMode(); closeUserMenu()">🔐 وضع المدير</div>
-        <div class="user-dropdown-item" onclick="closeUserMenu()">⚙️ الإعدادات</div>
+        <div style="height:1px;background:var(--border);margin:2px 0"></div>
+        <div class="user-dropdown-item" onclick="showEmployeesManager(); closeUserMenu()" id="emp-manager-btn" style="display:none">
+          👥 إدارة الموظفين
+          <span id="pending-emp-badge"></span>
+        </div>
+        <div class="user-dropdown-item" onclick="doLogout()" style="color:var(--danger)">🚪 تسجيل الخروج</div>
         <div class="user-dropdown-item" onclick="closeUserMenu()">🚪 تسجيل الخروج</div>
       </div>
     </div>
@@ -1344,10 +1627,12 @@ body {
 
   <!-- ===== REQUESTS PAGE ===== -->
   <div class="page flex-page" id="page-requests" style="display:none; overflow:hidden; flex:1">
-    <div class="main-wrap" style="height:100%">
+    <div class="main-wrap" style="height:100%; position:relative">
+      <!-- Sidebar Toggle Button -->
+      <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" onclick="toggleSidebar()" title="طي القائمة">◀</button>
 
       <!-- Sidebar list -->
-      <div class="sidebar">
+      <div class="sidebar" id="requests-sidebar">
         <div class="sidebar-header" style="flex-direction:column;align-items:stretch;gap:8px;padding:10px 12px">
           <div style="display:flex;align-items:center;justify-content:space-between">
             <h3>قائمة الطلبات</h3>
@@ -2498,7 +2783,16 @@ function closeRollbackPopup() {
   document.getElementById('rollback-notify-popup').style.display = 'none';
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+// ============================================================
+// AUTH STATE — الجلسة الحالية
+// ============================================================
+var CURRENT_USER = null; // { username, name, dept, center, role }
+
+function getCurrentUser() { return CURRENT_USER; }
+
+function isManager() { return CURRENT_USER && CURRENT_USER.role === 'manager'; }
+
+function initApp() {
   DB.init();
   document.getElementById('today-date').textContent =
     new Date().toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
@@ -2507,8 +2801,173 @@ document.addEventListener('DOMContentLoaded', () => {
   buildLettersList();
   buildChatList();
   updateNewRequestBtn();
-  setTimeout(() => toast('info','مرحباً بك','تم تسجيل الدخول بنجاح — الخارجة'), 600);
+
+  // تحديث الـ topbar بالمستخدم الحالي
+  if (CURRENT_USER) {
+    var nameEl = document.getElementById('topbar-user-name');
+    var roleEl = document.getElementById('topbar-user-role');
+    if (nameEl) nameEl.textContent = CURRENT_USER.name;
+    if (roleEl) roleEl.textContent = CURRENT_USER.dept + ' — ' + CURRENT_USER.center;
+
+    // ضبط currentEmployee بناءً على الـ role
+    if (CURRENT_USER.role === 'manager') {
+      isManagerMode = true;
+      currentEmployee = CURRENT_USER.name;
+      currentEmployeeFilter = 'all';
+      // إظهار زرار المدير وإخفاء تبديل الموظف
+      var modeBtn = document.getElementById('mode-switch-btn');
+      if (modeBtn) modeBtn.textContent = '↩️ وضع المدير (نشط)';
+    } else if (CURRENT_USER.dept === 'الشباك الأمامي') {
+      currentEmployee = FRONT_DESK_NAME;
+      currentEmployeeFilter = 'all';
+    } else {
+      currentEmployee = CURRENT_USER.name;
+      currentEmployeeFilter = CURRENT_USER.name;
+    }
+
+    // إخفاء قائمة تبديل الموظفين إذا لم يكن مديراً
+    if (CURRENT_USER.role !== 'manager') {
+      var switchSection = document.querySelector('.user-dropdown-item[style*="font-weight:700"]');
+      if (switchSection) {
+        // نخفي كل العناصر بين header الـ switch وآخر موظف
+        var allItems = document.querySelectorAll('.user-dropdown-item');
+        var inSwitch = false;
+        allItems.forEach(function(item) {
+          if (item.textContent.includes('تبديل الموظف')) { inSwitch = true; item.style.display='none'; return; }
+          if (inSwitch && (item.getAttribute('onclick')||'').includes('selectEmployee')) { item.style.display='none'; }
+          else { inSwitch = false; }
+        });
+      }
+    }
+
+    // مراقبة الـ pending employees (للمدير فقط)
+    if (CURRENT_USER.role === 'manager' && window.EmployeesDB) {
+      window.EmployeesDB.watchPending(function(count) {
+        var badge = document.getElementById('pending-emp-badge');
+        var managerBadge = document.getElementById('manager-badge');
+        if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline-block' : 'none'; }
+        if (managerBadge) { managerBadge.textContent = count; managerBadge.style.display = count > 0 ? 'inline-block' : 'none'; }
+      });
+    }
+  }
+
+  // إظهار زرار إدارة الموظفين للمدير فقط
+  if (CURRENT_USER && CURRENT_USER.role === 'manager') {
+    var empMgrBtn = document.getElementById('emp-manager-btn');
+    if (empMgrBtn) empMgrBtn.style.display = 'flex';
+  }
+  // بعد ضبط الـ role — حدّث القائمة
+  if (typeof buildRequestsList === 'function') buildRequestsList();
+  if (typeof updateSubbarCounts === 'function') updateSubbarCounts();
+  setTimeout(() => toast('info','مرحباً', 'أهلاً ' + (CURRENT_USER ? CURRENT_USER.name : '') + ' 👋'), 600);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // تحقق من الجلسة المحفوظة
+  var savedSession = sessionStorage.getItem('wj_session');
+  if (savedSession) {
+    try {
+      CURRENT_USER = JSON.parse(savedSession);
+      document.getElementById('login-screen').classList.add('hidden');
+      initApp();
+    } catch(e) {
+      sessionStorage.removeItem('wj_session');
+      // تبقى شاشة Login
+    }
+  }
+  // لو مفيش جلسة → شاشة Login تظهر تلقائياً
 });
+
+// ============================================================
+// LOGIN FUNCTIONS
+// ============================================================
+function switchLoginTab(tab) {
+  document.querySelectorAll('.login-tab').forEach(function(t){ t.classList.remove('active'); });
+  event.target.classList.add('active');
+  document.getElementById('login-fields-login').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('login-fields-register').style.display = tab === 'register' ? 'block' : 'none';
+  setLoginMsg('', '');
+}
+
+function setLoginMsg(type, text) {
+  var el = document.getElementById('login-msg');
+  el.className = 'login-msg' + (type ? ' ' + type : '');
+  el.textContent = text;
+  el.style.display = text ? 'block' : 'none';
+}
+
+async function doLogin() {
+  var username = (document.getElementById('login-username').value || '').trim();
+  var password = (document.getElementById('login-password').value || '').trim();
+  if (!username || !password) { setLoginMsg('error', 'يرجى إدخال اسم المستخدم وكلمة المرور'); return; }
+
+  var btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = 'جارٍ التحقق...';
+  setLoginMsg('info', 'جارٍ التحقق...');
+
+  try {
+    if (!window.EmployeesDB) { setLoginMsg('error', 'خطأ في الاتصال بقاعدة البيانات'); btn.disabled=false; btn.textContent='دخول'; return; }
+    var emp = await window.EmployeesDB.getByUsername(username);
+    if (!emp) { setLoginMsg('error', 'اسم المستخدم غير موجود'); btn.disabled=false; btn.textContent='دخول'; return; }
+    if (emp.pending) { setLoginMsg('error', 'حسابك قيد المراجعة — انتظر موافقة المدير'); btn.disabled=false; btn.textContent='دخول'; return; }
+
+    var hash = await window.EmployeesDB.hashPassword(password);
+    if (hash !== emp.passwordHash) { setLoginMsg('error', 'كلمة المرور غير صحيحة'); btn.disabled=false; btn.textContent='دخول'; return; }
+
+    // تسجيل الدخول ناجح
+    CURRENT_USER = { username: emp.username, name: emp.name, dept: emp.dept, center: emp.center, role: emp.role };
+    sessionStorage.setItem('wj_session', JSON.stringify(CURRENT_USER));
+    document.getElementById('login-screen').classList.add('hidden');
+    setLoginMsg('', '');
+    btn.disabled=false; btn.textContent='دخول';
+    initApp();
+  } catch(e) {
+    setLoginMsg('error', 'خطأ في الاتصال — تحقق من الإنترنت');
+    btn.disabled=false; btn.textContent='دخول';
+  }
+}
+
+async function doRegister() {
+  var name    = (document.getElementById('reg-name').value || '').trim();
+  var username= (document.getElementById('reg-username').value || '').trim().toLowerCase();
+  var password= (document.getElementById('reg-password').value || '').trim();
+  var dept    = document.getElementById('reg-dept').value;
+  var center  = document.getElementById('reg-center').value;
+
+  if (!name || !username || !password || !dept || !center) { setLoginMsg('error', 'يرجى ملء جميع الحقول'); return; }
+  if (password.length < 6) { setLoginMsg('error', 'كلمة المرور 6 أحرف على الأقل'); return; }
+  if (!/^[a-z0-9_]+$/.test(username)) { setLoginMsg('error', 'اسم المستخدم: أحرف إنجليزية وأرقام فقط'); return; }
+
+  var btn = document.getElementById('register-btn');
+  btn.disabled = true; btn.textContent = 'جارٍ الإرسال...';
+
+  try {
+    var existing = await window.EmployeesDB.getByUsername(username);
+    if (existing) { setLoginMsg('error', 'اسم المستخدم محجوز — اختر اسماً آخر'); btn.disabled=false; btn.textContent='إرسال طلب التسجيل'; return; }
+
+    var hash = await window.EmployeesDB.hashPassword(password);
+    var saved = await window.EmployeesDB.save({
+      username, passwordHash: hash, name, dept, center,
+      role: 'employee', pending: true,
+      createdAt: new Date().toISOString()
+    });
+    if (saved) {
+      setLoginMsg('success', '✅ تم إرسال طلبك — انتظر موافقة المدير للدخول');
+    } else {
+      setLoginMsg('error', 'حدث خطأ — حاول مرة أخرى');
+    }
+    btn.disabled=false; btn.textContent='إرسال طلب التسجيل';
+  } catch(e) {
+    setLoginMsg('error', 'خطأ في الاتصال');
+    btn.disabled=false; btn.textContent='إرسال طلب التسجيل';
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('wj_session');
+  CURRENT_USER = null;
+  location.reload();
+}
 
 // ============================================================
 // NAVIGATION
@@ -2537,6 +2996,7 @@ function showMain(name, btn) {
   if (name==='overview')  refreshAll();
   if (name==='manager')   { buildManagerPage(); updateManagerLabel(true); return; }
   if (name==='inquiries') buildInquiriesList();
+  if (name==='complaints') buildComplaintsList();
   // manager mode label
   updateManagerLabel(false);
   isManagerMode = false;
@@ -3873,6 +4333,29 @@ function refreshAll() {
 // ============================================================
 // REQUESTS LIST
 // ============================================================
+
+// ============================================================
+// SIDEBAR TOGGLE
+// ============================================================
+var _sidebarCollapsed = false;
+function toggleSidebar() {
+  var sidebar = document.getElementById('requests-sidebar');
+  var btn = document.getElementById('sidebar-toggle-btn');
+  if (!sidebar || !btn) return;
+  _sidebarCollapsed = !_sidebarCollapsed;
+  if (_sidebarCollapsed) {
+    sidebar.classList.add('collapsed');
+    btn.style.right = '-14px';
+    btn.textContent = '▶';
+    btn.title = 'فرد القائمة';
+  } else {
+    sidebar.classList.remove('collapsed');
+    btn.style.right = 'calc(290px - 14px)';
+    btn.textContent = '◀';
+    btn.title = 'طي القائمة';
+  }
+}
+
 function buildRequestsList(filter) {
   if (filter) currentFilter = filter;
   var all = DB.getAll();
@@ -3887,7 +4370,9 @@ function buildRequestsList(filter) {
   // ============================================================
   if (currentFilter !== 'assigned_away') {
     all = all.filter(function(r) {
-      if (currentEmployee === FRONT_DESK_NAME) {
+      // المدير يشوف كل الطلبات دائماً
+      if (isManagerMode) return true;
+      if (currentEmployee === FRONT_DESK_NAME || (CURRENT_USER && CURRENT_USER.dept === 'الشباك الأمامي')) {
         // الشباك الأمامي: يشوف الطلبات اللي مسندة له أو مش مسندة لحد
         return !r.assignedTo || r.assignedTo === FRONT_DESK_NAME || r.assignedTo === 'all';
       } else {
@@ -4168,10 +4653,10 @@ function updateSubbarCounts() {
 // REQUEST DETAIL
 // ============================================================
 function openRequest(id) {
+  currentRequestId = id;
   if (!document.getElementById('page-requests').classList.contains('active')) {
     showMain('requests', document.querySelectorAll('.topbar-btn')[1]);
   }
-  currentRequestId = id;
   buildRequestsList();
   const r = DB.getById(id);
   if (!r) return;
@@ -6495,5 +6980,426 @@ function exportTable() {
     </div>
   </div>
 </div>
+
+
+<!-- ============================================================
+     COMPLAINTS PAGE
+     ============================================================ -->
+<div class="page flex-page" id="page-complaints" style="display:none; overflow:hidden; flex:1">
+  <div class="sidebar" id="complaints-sidebar" style="width:300px; min-width:300px">
+    <div class="sidebar-header" style="padding:12px 16px; border-bottom:1px solid var(--border)">
+      <div style="font-size:13px; font-weight:700; color:var(--text); margin-bottom:8px">📣 الشكاوى والمقترحات</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm complaint-filter-btn active" onclick="filterComplaints('all', this)">الكل</button>
+        <button class="btn btn-ghost btn-sm complaint-filter-btn" onclick="filterComplaints('new', this)">جديدة</button>
+        <button class="btn btn-ghost btn-sm complaint-filter-btn" onclick="filterComplaints('assigned', this)">محالة</button>
+        <button class="btn btn-ghost btn-sm complaint-filter-btn" onclick="filterComplaints('resolved', this)">منتهية</button>
+        <button class="btn btn-ghost btn-sm complaint-filter-btn" onclick="filterComplaints('closed', this)">مغلقة</button>
+      </div>
+    </div>
+    <div style="overflow-y:auto; flex:1; padding:10px" id="complaints-list-container">
+      <div style="text-align:center; color:var(--text3); padding:40px 0; font-size:13px">جارٍ التحميل...</div>
+    </div>
+  </div>
+  <div class="complaint-detail" id="complaint-detail-panel">
+    <div class="welcome-state" style="height:100%">
+      <div style="font-size:40px; margin-bottom:12px">📣</div>
+      <div style="font-size:15px; font-weight:600; color:var(--text)">اختر شكوى من القائمة</div>
+      <div style="font-size:12px; color:var(--text3); margin-top:6px">انقر على أي شكوى لعرض تفاصيلها واتخاذ اللازم</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     EMPLOYEES MANAGER MODAL (للمدير فقط)
+     ============================================================ -->
+<div id="emp-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(3px)">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:560px;max-height:80vh;overflow-y:auto;direction:rtl;box-shadow:0 24px 64px rgba(0,0,0,0.25)">
+    <div style="padding:18px 20px;border-bottom:1px solid #e2e6ef;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:15px;font-weight:700;color:#1a3a6b">👥 إدارة الموظفين</div>
+      <button onclick="document.getElementById('emp-modal').style.display='none'" style="background:none;border:none;font-size:18px;cursor:pointer;color:#8896a8">✕</button>
+    </div>
+    <div style="padding:16px 20px">
+      <div style="font-size:11px;font-weight:700;color:#8896a8;margin-bottom:8px;text-transform:uppercase">طلبات التسجيل المعلقة</div>
+      <div id="emp-pending-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px"></div>
+      <div style="font-size:11px;font-weight:700;color:#8896a8;margin-bottom:8px;text-transform:uppercase">الموظفون النشطون</div>
+      <div id="emp-active-list" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function showEmployeesManager() {
+  if (!window.EmployeesDB) return;
+  document.getElementById('emp-modal').style.display = 'flex';
+  var all = await window.EmployeesDB.getAll();
+  var pending = all.filter(e => e.pending);
+  var active  = all.filter(e => !e.pending);
+
+  // Pending
+  var pendingEl = document.getElementById('emp-pending-list');
+  if (!pending.length) {
+    pendingEl.innerHTML = '<div style="font-size:12px;color:#8896a8;padding:8px 0">لا توجد طلبات معلقة</div>';
+  } else {
+    pendingEl.innerHTML = pending.map(e => `
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:#1a2332">${e.name}</div>
+          <div style="font-size:11px;color:#8896a8">${e.dept} — ${e.center} | @${e.username}</div>
+        </div>
+        <button onclick="approveEmployee('${e.username}')" style="background:#0f7b55;color:white;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-family:Cairo,sans-serif;cursor:pointer;font-weight:600">موافقة</button>
+        <button onclick="rejectEmployee('${e.username}')" style="background:#c0392b;color:white;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-family:Cairo,sans-serif;cursor:pointer;font-weight:600">رفض</button>
+      </div>
+    `).join('');
+  }
+
+  // Active
+  var activeEl = document.getElementById('emp-active-list');
+  if (!active.length) {
+    activeEl.innerHTML = '<div style="font-size:12px;color:#8896a8">لا يوجد موظفون مسجلون</div>';
+  } else {
+    activeEl.innerHTML = active.map(e => `
+      <div style="background:#f8f9fc;border:1px solid #e2e6ef;border-radius:8px;padding:8px 14px;display:flex;align-items:center;gap:8px">
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:600;color:#1a2332">${e.name} ${e.role==='manager'?'<span style="background:#eef1f9;color:#1a3a6b;font-size:9px;padding:1px 6px;border-radius:8px;margin-right:4px">مدير</span>':''}</div>
+          <div style="font-size:11px;color:#8896a8">${e.dept} — ${e.center}</div>
+        </div>
+        ${e.role !== 'manager' ? `<button onclick="removeEmployee('${e.username}')" style="background:none;border:1px solid #e2e6ef;border-radius:6px;padding:4px 8px;font-size:10px;cursor:pointer;color:#c0392b">حذف</button>` : ''}
+      </div>
+    `).join('');
+  }
+}
+
+async function approveEmployee(username) {
+  if (!window.EmployeesDB) return;
+  var emp = await window.EmployeesDB.getByUsername(username);
+  if (!emp) return;
+  emp.pending = false;
+  await window.EmployeesDB.save(emp);
+  toast('success', 'تمت الموافقة', emp.name + ' يمكنه الآن تسجيل الدخول');
+  showEmployeesManager();
+}
+
+async function rejectEmployee(username) {
+  if (!window.EmployeesDB) return;
+  var emp = await window.EmployeesDB.getByUsername(username);
+  if (!emp) return;
+  // نحذف السجل من Firebase
+  try {
+    const { deleteDoc, doc: _doc } = await import('https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js');
+  } catch(e) {}
+  // fallback: نضع rejected flag
+  emp.pending = false; emp.rejected = true;
+  await window.EmployeesDB.save(emp);
+  toast('warn', 'تم الرفض', 'تم رفض طلب ' + emp.name);
+  showEmployeesManager();
+}
+
+async function removeEmployee(username) {
+  if (!confirm('هل أنت متأكد من حذف هذا الموظف؟')) return;
+  if (!window.EmployeesDB) return;
+  var emp = await window.EmployeesDB.getByUsername(username);
+  if (!emp) return;
+  emp.rejected = true; emp.pending = false;
+  await window.EmployeesDB.save(emp);
+  toast('warn', 'تم الحذف', 'تم حذف الموظف ' + emp.name);
+  showEmployeesManager();
+}
+</script>
+
+<script>
+
+// ============================================================
+// COMPLAINTS — Firebase + UI
+// ============================================================
+var currentComplaintId = null;
+var currentComplaintFilter = 'all';
+
+var COMPLAINT_STATUS = {
+  'new':      '<span class="complaint-badge cbadge-new">🆕 جديدة</span>',
+  'assigned': '<span class="complaint-badge cbadge-assigned">📋 محالة</span>',
+  'resolved': '<span class="complaint-badge cbadge-resolved">✅ منتهية</span>',
+  'closed':   '<span class="complaint-badge cbadge-closed">🔒 مغلقة</span>'
+};
+
+var COMPLAINT_STEPS_LABELS = {
+  'new':      'تم استلام الشكوى',
+  'assigned': 'تم إحالتها للجهة المختصة',
+  'resolved': 'تمت المعالجة',
+  'closed':   'صدر القرار النهائي'
+};
+
+// جلب الشكاوى من Firebase
+async function loadComplaints() {
+  var FB_C_ALL = 'https://firestore.googleapis.com/v1/projects/petitions-wadi/databases/(default)/documents/complaints';
+  try {
+    var res = await fetch(FB_C_ALL);
+    var data = await res.json();
+    if (!data.documents) return [];
+    return data.documents.map(function(docItem) {
+      var f = docItem.fields || {};
+      var out = {};
+      Object.keys(f).forEach(function(k) {
+        var v = f[k];
+        if (v.stringValue !== undefined) out[k] = v.stringValue;
+        else if (v.arrayValue) out[k] = v.arrayValue.values || [];
+        else if (v.booleanValue !== undefined) out[k] = v.booleanValue;
+        else out[k] = v;
+      });
+      return out;
+    });
+  } catch(e) { console.warn('loadComplaints error:', e); return []; }
+}
+
+// بناء قائمة الشكاوى
+async function buildComplaintsList() {
+  var container = document.getElementById('complaints-list-container');
+  if (!container) return;
+  container.innerHTML = '<div style="text-align:center;color:var(--text3);padding:40px 0;font-size:13px">جارٍ التحميل...</div>';
+
+  var all = await loadComplaints();
+
+  // فلترة حسب الـ role
+  if (!isManagerMode && CURRENT_USER && CURRENT_USER.role !== 'manager') {
+    all = all.filter(function(c) { return c.assignedDept === CURRENT_USER.dept; });
+  }
+
+  // فلترة حسب الـ tab
+  if (currentComplaintFilter !== 'all') {
+    all = all.filter(function(c) { return c.status === currentComplaintFilter; });
+  }
+
+  // ترتيب من الأحدث
+  all.sort(function(a, b) { return (b.createdAt || '') > (a.createdAt || '') ? 1 : -1; });
+
+  if (!all.length) {
+    container.innerHTML = '<div style="text-align:center;color:var(--text3);padding:40px 0;font-size:13px">لا توجد شكاوى</div>';
+    return;
+  }
+
+  container.innerHTML = all.map(function(c) {
+    var isSelected = c.id === currentComplaintId;
+    return (
+      '<div class="complaint-card' + (isSelected ? ' selected' : '') + '" onclick="openComplaint(\'' + c.id + '\')">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">' +
+          '<span style="font-family:monospace;font-size:11px;color:var(--primary);font-weight:700">' + c.id + '</span>' +
+          (COMPLAINT_STATUS[c.status] || '') +
+        '</div>' +
+        '<div style="font-size:12px;color:var(--text);font-weight:600;margin-bottom:2px">' + (c.type || '') + '</div>' +
+        '<div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (c.text || '').substring(0, 60) + '</div>' +
+        '<div style="font-size:10px;color:var(--text3);margin-top:4px">' + timeAgo(c.createdAt) + '</div>' +
+      '</div>'
+    );
+  }).join('');
+}
+
+function filterComplaints(filter, btn) {
+  currentComplaintFilter = filter;
+  document.querySelectorAll('.complaint-filter-btn').forEach(function(b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  buildComplaintsList();
+}
+
+// فتح تفاصيل شكوى
+async function openComplaint(id) {
+  currentComplaintId = id;
+  buildComplaintsList();
+
+  var panel = document.getElementById('complaint-detail-panel');
+  if (!panel) return;
+  panel.innerHTML = '<div style="text-align:center;color:var(--text3);padding:60px;font-size:13px">جارٍ التحميل...</div>';
+
+  var all = await loadComplaints();
+  var c = all.find(function(x) { return x.id === id; });
+  if (!c) return;
+
+  var canAssign = isManagerMode || (CURRENT_USER && CURRENT_USER.role === 'manager');
+  var canClose  = canAssign;
+  var isResolved = c.status === 'resolved';
+
+  // قائمة الأقسام
+  var depts = [
+    'الشباك الأمامي','موظف الحصر','موظف التقنين','صندوق الأراضي',
+    'هندسية — تخطيط عمراني','هندسية — تنظيم','هندسية — إشغالات',
+    'هندسية — محلات','هندسية — متغيرات مكانية','هندسية — إزالات'
+  ];
+
+  var stepsHTML = (c.steps || []).map(function(s) {
+    return (
+      '<div class="complaint-step">' +
+        '<div class="complaint-step-dot"></div>' +
+        '<div>' +
+          '<div style="font-size:12px;font-weight:600;color:var(--text)">' + (COMPLAINT_STEPS_LABELS[s.s] || s.s) + '</div>' +
+          (s.note ? '<div style="font-size:11px;color:var(--text2);margin-top:2px">' + s.note + '</div>' : '') +
+          '<div style="font-size:10px;color:var(--text3);margin-top:2px">' + (s.by || '') + ' — ' + timeAgo(s.t) + '</div>' +
+        '</div>' +
+      '</div>'
+    );
+  }).join('');
+
+  panel.innerHTML =
+    '<div style="max-width:700px">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">' +
+        '<div style="font-family:monospace;font-size:13px;font-weight:700;color:var(--primary)">' + c.id + '</div>' +
+        (COMPLAINT_STATUS[c.status] || '') +
+      '</div>' +
+
+      '<div style="background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">' +
+        '<div style="font-size:11px;color:var(--text3);margin-bottom:4px">نوع الشكوى</div>' +
+        '<div style="font-size:14px;font-weight:600;color:var(--text)">' + (c.type || '') + '</div>' +
+      '</div>' +
+
+      '<div style="background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">' +
+        '<div style="font-size:11px;color:var(--text3);margin-bottom:6px">نص الشكوى</div>' +
+        '<div style="font-size:13px;color:var(--text);line-height:1.7">' + (c.text || '') + '</div>' +
+      '</div>' +
+
+      (c.assignedDept ? '<div style="background:#FFF3CD;border:0.5px solid #ffc107;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#856404">📋 محالة إلى: <b>' + c.assignedDept + '</b></div>' : '') +
+
+      '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">سجل الأحداث</div>' +
+      '<div class="complaint-steps">' + stepsHTML + '</div>' +
+
+      // أدوات المدير
+      (canAssign && c.status === 'new' ? (
+        '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
+          '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">📋 إحالة الشكوى</div>' +
+          '<select id="assign-dept-select" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px">' +
+            '<option value="">اختر القسم أو الإدارة</option>' +
+            depts.map(function(dep) { return '<option value="' + dep + '">' + dep + '</option>'; }).join('') +
+          '</select>' +
+          '<button class="btn btn-primary btn-sm" onclick="assignComplaint('' + c.id + '')" style="width:100%">إحالة الشكوى ✓</button>' +
+        '</div>'
+      ) : '') +
+
+      (canAssign && c.status === 'assigned' ? (
+        '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
+          '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">✅ إنهاء المعالجة</div>' +
+          '<textarea id="resolve-note" placeholder="ملاحظات المعالجة..." rows="3" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px;resize:vertical;box-sizing:border-box"></textarea>' +
+          '<button class="btn btn-primary btn-sm" onclick="resolveComplaint('' + c.id + '')" style="width:100%">تم المعالجة ✓</button>' +
+        '</div>'
+      ) : '') +
+
+      (canClose && c.status === 'resolved' ? (
+        '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
+          '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">🔒 القرار النهائي (رئيس المركز)</div>' +
+          '<textarea id="close-note" placeholder="القرار النهائي في الشكوى..." rows="3" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px;resize:vertical;box-sizing:border-box"></textarea>' +
+          '<button class="btn btn-primary btn-sm" onclick="closeComplaint('' + c.id + '')" style="width:100%">إغلاق الشكوى ✓</button>' +
+        '</div>'
+      ) : '') +
+
+    '</div>';
+}
+
+// إحالة الشكوى
+async function assignComplaint(id) {
+  var dept = document.getElementById('assign-dept-select').value;
+  if (!dept) { toast('warn','تنبيه','اختر القسم أولاً'); return; }
+
+  await updateComplaintStatus(id, 'assigned', {
+    assignedDept: dept,
+    stepNote: 'أُحيلت إلى: ' + dept
+  });
+  toast('success','تمت الإحالة','تم إحالة الشكوى إلى ' + dept);
+
+  // إشعار المواطن
+  var all = await loadComplaints();
+  var c = all.find(function(x) { return x.id === id; });
+  if (c && c.telegramChatId) {
+    sendTelegramMsg(c.telegramChatId,
+      '📋 تحديث شكواك\n\n' +
+      'رقم الشكوى: ' + id + '\n' +
+      'تم إحالة شكواك إلى: ' + dept + '\n' +
+      'جارٍ العمل على حلها وسيتم إخطارك بالنتيجة.'
+    );
+  }
+  openComplaint(id);
+}
+
+// إنهاء المعالجة
+async function resolveComplaint(id) {
+  var note = (document.getElementById('resolve-note').value || '').trim();
+  if (!note) { toast('warn','تنبيه','أدخل ملاحظات المعالجة'); return; }
+
+  await updateComplaintStatus(id, 'resolved', { stepNote: note });
+  toast('success','تمت المعالجة','انتظر القرار النهائي من رئيس المركز');
+
+  var all = await loadComplaints();
+  var c = all.find(function(x) { return x.id === id; });
+  if (c && c.telegramChatId) {
+    sendTelegramMsg(c.telegramChatId,
+      '✅ تحديث شكواك\n\n' +
+      'رقم الشكوى: ' + id + '\n' +
+      'تمت معالجة شكواك وجارٍ اعتماد القرار النهائي من رئيس المركز.\n' +
+      'سيتم إخطارك بالقرار قريباً.'
+    );
+  }
+  openComplaint(id);
+}
+
+// إغلاق الشكوى بالقرار النهائي
+async function closeComplaint(id) {
+  var note = (document.getElementById('close-note').value || '').trim();
+  if (!note) { toast('warn','تنبيه','أدخل القرار النهائي'); return; }
+
+  await updateComplaintStatus(id, 'closed', { stepNote: note });
+  toast('success','تم الإغلاق','تم إغلاق الشكوى بالقرار النهائي');
+
+  var all = await loadComplaints();
+  var c = all.find(function(x) { return x.id === id; });
+  if (c && c.telegramChatId) {
+    sendTelegramMsg(c.telegramChatId,
+      '🔒 القرار النهائي في شكواك\n\n' +
+      'رقم الشكوى: ' + id + '\n' +
+      'القرار: ' + note + '\n\n' +
+      'شكراً لتواصلك مع المركز التكنولوجي.'
+    );
+  }
+  openComplaint(id);
+}
+
+// تحديث الحالة في Firebase
+async function updateComplaintStatus(id, newStatus, extra) {
+  var FB_C = 'https://firestore.googleapis.com/v1/projects/petitions-wadi/databases/(default)/documents/complaints/' + id;
+  try {
+    // جلب الشكوى الحالية
+    var getRes = await fetch(FB_C);
+    var current = await getRes.json();
+    if (!current.fields) return;
+
+    var now = new Date().toISOString();
+    var existingSteps = (current.fields.steps && current.fields.steps.arrayValue && current.fields.steps.arrayValue.values) || [];
+    var newStep = { mapValue: { fields: {
+      s:    { stringValue: newStatus },
+      t:    { stringValue: now },
+      by:   { stringValue: CURRENT_USER ? CURRENT_USER.name : 'النظام' },
+      note: { stringValue: extra.stepNote || '' }
+    }}};
+
+    var updatedFields = Object.assign({}, current.fields);
+    updatedFields.status    = { stringValue: newStatus };
+    updatedFields.updatedAt = { stringValue: now };
+    updatedFields.steps     = { arrayValue: { values: existingSteps.concat([newStep]) } };
+    if (extra.assignedDept) updatedFields.assignedDept = { stringValue: extra.assignedDept };
+
+    await fetch(FB_C, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: updatedFields })
+    });
+    buildComplaintsList();
+  } catch(e) { console.warn('updateComplaintStatus error:', e); toast('error','خطأ','تعذر تحديث الشكوى'); }
+}
+
+// إرسال إشعار تليجرام
+function sendTelegramMsg(chatId, text) {
+  var BOT_TOKEN = '8757928092:AAF31wqeBDHXKkswZiYJIqAhL0S_d2h70OI';
+  fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text: text })
+  }).catch(function(e) { console.warn('Telegram notify error:', e); });
+}
+
+</script>
 </body>
 </html
