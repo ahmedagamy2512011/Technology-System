@@ -1259,6 +1259,8 @@ body {
             } catch(e) {}
           });
           if (typeof buildRequestsList === 'function') buildRequestsList();
+  setTimeout(checkLateComplaints, 3000);
+  setInterval(checkLateComplaints, 3600000);
           if (typeof updateSubbarCounts === 'function') updateSubbarCounts();
         }
       }, 500);
@@ -2884,6 +2886,8 @@ function initApp() {
   }
   // بعد ضبط الـ role — حدّث القائمة
   if (typeof buildRequestsList === 'function') buildRequestsList();
+  setTimeout(checkLateComplaints, 3000);
+  setInterval(checkLateComplaints, 3600000);
   if (typeof updateSubbarCounts === 'function') updateSubbarCounts();
   setTimeout(() => toast('info','مرحباً', 'أهلاً ' + (CURRENT_USER ? CURRENT_USER.name : '') + ' 👋'), 600);
 }
@@ -7182,7 +7186,10 @@ async function buildComplaintsList() {
   var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager';
   console.log('isAdmin:', isAdmin, 'CURRENT_USER:', CURRENT_USER ? CURRENT_USER.role : 'null');
   if (!isAdmin) {
-    all = all.filter(function(c) { return c.assignedDept === (CURRENT_USER ? CURRENT_USER.dept : ''); });
+    // الموظف يشوف بس الشكاوى المحالة لقسمه
+    all = all.filter(function(c) {
+      return c.assignedDept === (CURRENT_USER ? CURRENT_USER.dept : '');
+    });
   }
 
   // فلترة حسب الـ tab
@@ -7282,6 +7289,16 @@ async function openComplaint(id) {
       '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">سجل الأحداث</div>' +
       '<div class="complaint-steps">' + stepsHTML + '</div>' +
 
+      // تنبيه التأخر
+      (function() {
+        if (!c.createdAt) return '';
+        var hours = (Date.now() - new Date(c.createdAt).getTime()) / 36e5;
+        if (hours > 73 && c.status !== 'closed') {
+          return '<div style="background:#FFF3CD;border:1px solid #ffc107;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:12px;color:#856404">⚠️ تنبيه: هذه الشكوى متأخرة — مضى عليها ' + Math.floor(hours) + ' ساعة</div>';
+        }
+        return '';
+      })() +
+
       // أدوات المدير
       (canAssign && c.status === 'new' ? (
         '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
@@ -7294,15 +7311,20 @@ async function openComplaint(id) {
         '</div>'
       ) : '') +
 
-      (canAssign && c.status === 'assigned' ? (
+      (isAdmin && c.status === 'assigned' ? (
         '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
-          '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">✅ إنهاء المعالجة</div>' +
+          '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">🔀 إعادة إحالة أو إنهاء</div>' +
+          '<select id="reassign-dept-select" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:6px">' +
+            '<option value="">إعادة إحالة لجهة أخرى (اختياري)</option>' +
+            depts.map(function(dep) { return '<option value="' + dep + '">' + dep + '</option>'; }).join('') +
+          '</select>' +
+          '<button class="btn btn-ghost btn-sm" onclick="reassignComplaint(\'' + c.id + '\')" style="width:100%;margin-bottom:8px">إعادة الإحالة 🔀</button>' +
           '<textarea id="resolve-note" placeholder="ملاحظات المعالجة..." rows="3" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px;resize:vertical;box-sizing:border-box"></textarea>' +
           '<button class="btn btn-primary btn-sm" onclick="resolveComplaint(\'' + c.id + '\')" style="width:100%">تم المعالجة ✓</button>' +
         '</div>'
       ) : '') +
 
-      (canClose && c.status === 'resolved' ? (
+      (isAdmin && c.status === 'resolved' ? (
         '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
           '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">🔒 القرار النهائي (رئيس المركز)</div>' +
           '<textarea id="close-note" placeholder="القرار النهائي في الشكوى..." rows="3" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px;resize:vertical;box-sizing:border-box"></textarea>' +
@@ -7311,6 +7333,53 @@ async function openComplaint(id) {
       ) : '') +
 
     '</div>';
+}
+
+
+
+// تنبيه الشكاوى المتأخرة — تشتغل كل ساعة
+async function checkLateComplaints() {
+  if (!CURRENT_USER || CURRENT_USER.role !== 'manager') return;
+  var all = await loadComplaints();
+  var lateOnes = all.filter(function(c) {
+    if (c.status === 'closed') return false;
+    var hours = (Date.now() - new Date(c.createdAt).getTime()) / 36e5;
+    return hours > 73;
+  });
+  if (lateOnes.length > 0) {
+    toast('warn', '⚠️ شكاوى متأخرة', lateOnes.length + ' شكوى تجاوزت 73 ساعة — راجع تبويبة الشكاوى');
+    // تحديث badge
+    var badge = document.getElementById('complaints-late-badge');
+    if (!badge) {
+      var btn = document.getElementById('complaints-tab-btn');
+      if (btn) {
+        badge = document.createElement('span');
+        badge.id = 'complaints-late-badge';
+        badge.style.cssText = 'background:#e53e3e;color:white;font-size:9px;padding:1px 5px;border-radius:10px;margin-right:4px;font-weight:700';
+        btn.insertBefore(badge, btn.firstChild);
+      }
+    }
+    if (badge) badge.textContent = lateOnes.length;
+  }
+}
+
+// إعادة إحالة الشكوى
+async function reassignComplaint(id) {
+  var dept = document.getElementById('reassign-dept-select').value;
+  if (!dept) { toast('warn','تنبيه','اختر الجهة الجديدة أولاً'); return; }
+  await updateComplaintStatus(id, 'assigned', {
+    assignedDept: dept,
+    stepNote: 'أُعيدت الإحالة إلى: ' + dept
+  });
+  toast('success','تمت إعادة الإحالة','تم إحالة الشكوى إلى ' + dept);
+  var all = await loadComplaints();
+  var c = all.find(function(x) { return x.id === id; });
+  if (c && c.telegramChatId) {
+    sendTelegramMsg(c.telegramChatId,
+      '🔀 تحديث شكواك\n\nرقم الشكوى: ' + id + '\nتم إحالة شكواك إلى: ' + dept + '\nجارٍ العمل على حلها.'
+    );
+  }
+  openComplaint(id);
 }
 
 // إحالة الشكوى
@@ -7391,10 +7460,13 @@ async function updateComplaintStatus(id, newStatus, extra) {
 
     var now = new Date().toISOString();
     var existingSteps = (current.fields.steps && current.fields.steps.arrayValue && current.fields.steps.arrayValue.values) || [];
+    var nowDate = new Date(now);
+    var nowStr = nowDate.toLocaleString('ar-EG', {year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    var byName = CURRENT_USER ? (CURRENT_USER.name + ' — ' + CURRENT_USER.dept) : 'النظام';
     var newStep = { mapValue: { fields: {
       s:    { stringValue: newStatus },
       t:    { stringValue: now },
-      by:   { stringValue: CURRENT_USER ? CURRENT_USER.name : 'النظام' },
+      by:   { stringValue: byName + ' | ' + nowStr },
       note: { stringValue: extra.stepNote || '' }
     }}};
 
@@ -7599,7 +7671,10 @@ async function buildComplaintsList() {
   var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager';
   console.log('isAdmin:', isAdmin, 'CURRENT_USER:', CURRENT_USER ? CURRENT_USER.role : 'null');
   if (!isAdmin) {
-    all = all.filter(function(c) { return c.assignedDept === (CURRENT_USER ? CURRENT_USER.dept : ''); });
+    // الموظف يشوف بس الشكاوى المحالة لقسمه
+    all = all.filter(function(c) {
+      return c.assignedDept === (CURRENT_USER ? CURRENT_USER.dept : '');
+    });
   }
 
   // فلترة حسب الـ tab
@@ -7699,6 +7774,16 @@ async function openComplaint(id) {
       '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">سجل الأحداث</div>' +
       '<div class="complaint-steps">' + stepsHTML + '</div>' +
 
+      // تنبيه التأخر
+      (function() {
+        if (!c.createdAt) return '';
+        var hours = (Date.now() - new Date(c.createdAt).getTime()) / 36e5;
+        if (hours > 73 && c.status !== 'closed') {
+          return '<div style="background:#FFF3CD;border:1px solid #ffc107;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:12px;color:#856404">⚠️ تنبيه: هذه الشكوى متأخرة — مضى عليها ' + Math.floor(hours) + ' ساعة</div>';
+        }
+        return '';
+      })() +
+
       // أدوات المدير
       (canAssign && c.status === 'new' ? (
         '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
@@ -7711,15 +7796,20 @@ async function openComplaint(id) {
         '</div>'
       ) : '') +
 
-      (canAssign && c.status === 'assigned' ? (
+      (isAdmin && c.status === 'assigned' ? (
         '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
-          '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">✅ إنهاء المعالجة</div>' +
+          '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">🔀 إعادة إحالة أو إنهاء</div>' +
+          '<select id="reassign-dept-select" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:6px">' +
+            '<option value="">إعادة إحالة لجهة أخرى (اختياري)</option>' +
+            depts.map(function(dep) { return '<option value="' + dep + '">' + dep + '</option>'; }).join('') +
+          '</select>' +
+          '<button class="btn btn-ghost btn-sm" onclick="reassignComplaint(\'' + c.id + '\')" style="width:100%;margin-bottom:8px">إعادة الإحالة 🔀</button>' +
           '<textarea id="resolve-note" placeholder="ملاحظات المعالجة..." rows="3" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px;resize:vertical;box-sizing:border-box"></textarea>' +
           '<button class="btn btn-primary btn-sm" onclick="resolveComplaint(\'' + c.id + '\')" style="width:100%">تم المعالجة ✓</button>' +
         '</div>'
       ) : '') +
 
-      (canClose && c.status === 'resolved' ? (
+      (isAdmin && c.status === 'resolved' ? (
         '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
           '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">🔒 القرار النهائي (رئيس المركز)</div>' +
           '<textarea id="close-note" placeholder="القرار النهائي في الشكوى..." rows="3" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px;resize:vertical;box-sizing:border-box"></textarea>' +
@@ -7728,6 +7818,53 @@ async function openComplaint(id) {
       ) : '') +
 
     '</div>';
+}
+
+
+
+// تنبيه الشكاوى المتأخرة — تشتغل كل ساعة
+async function checkLateComplaints() {
+  if (!CURRENT_USER || CURRENT_USER.role !== 'manager') return;
+  var all = await loadComplaints();
+  var lateOnes = all.filter(function(c) {
+    if (c.status === 'closed') return false;
+    var hours = (Date.now() - new Date(c.createdAt).getTime()) / 36e5;
+    return hours > 73;
+  });
+  if (lateOnes.length > 0) {
+    toast('warn', '⚠️ شكاوى متأخرة', lateOnes.length + ' شكوى تجاوزت 73 ساعة — راجع تبويبة الشكاوى');
+    // تحديث badge
+    var badge = document.getElementById('complaints-late-badge');
+    if (!badge) {
+      var btn = document.getElementById('complaints-tab-btn');
+      if (btn) {
+        badge = document.createElement('span');
+        badge.id = 'complaints-late-badge';
+        badge.style.cssText = 'background:#e53e3e;color:white;font-size:9px;padding:1px 5px;border-radius:10px;margin-right:4px;font-weight:700';
+        btn.insertBefore(badge, btn.firstChild);
+      }
+    }
+    if (badge) badge.textContent = lateOnes.length;
+  }
+}
+
+// إعادة إحالة الشكوى
+async function reassignComplaint(id) {
+  var dept = document.getElementById('reassign-dept-select').value;
+  if (!dept) { toast('warn','تنبيه','اختر الجهة الجديدة أولاً'); return; }
+  await updateComplaintStatus(id, 'assigned', {
+    assignedDept: dept,
+    stepNote: 'أُعيدت الإحالة إلى: ' + dept
+  });
+  toast('success','تمت إعادة الإحالة','تم إحالة الشكوى إلى ' + dept);
+  var all = await loadComplaints();
+  var c = all.find(function(x) { return x.id === id; });
+  if (c && c.telegramChatId) {
+    sendTelegramMsg(c.telegramChatId,
+      '🔀 تحديث شكواك\n\nرقم الشكوى: ' + id + '\nتم إحالة شكواك إلى: ' + dept + '\nجارٍ العمل على حلها.'
+    );
+  }
+  openComplaint(id);
 }
 
 // إحالة الشكوى
@@ -7808,10 +7945,13 @@ async function updateComplaintStatus(id, newStatus, extra) {
 
     var now = new Date().toISOString();
     var existingSteps = (current.fields.steps && current.fields.steps.arrayValue && current.fields.steps.arrayValue.values) || [];
+    var nowDate = new Date(now);
+    var nowStr = nowDate.toLocaleString('ar-EG', {year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    var byName = CURRENT_USER ? (CURRENT_USER.name + ' — ' + CURRENT_USER.dept) : 'النظام';
     var newStep = { mapValue: { fields: {
       s:    { stringValue: newStatus },
       t:    { stringValue: now },
-      by:   { stringValue: CURRENT_USER ? CURRENT_USER.name : 'النظام' },
+      by:   { stringValue: byName + ' | ' + nowStr },
       note: { stringValue: extra.stepNote || '' }
     }}};
 
