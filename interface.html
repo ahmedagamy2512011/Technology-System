@@ -7230,28 +7230,22 @@ async function buildComplaintsList() {
   console.log('complaints parsed:', all.length, all.length ? JSON.stringify(all[0]).substring(0,200) : 'empty');
 
   // فلترة حسب الـ role
-  var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager';
-  console.log('isAdmin:', isAdmin, 'CURRENT_USER:', CURRENT_USER ? CURRENT_USER.role : 'null');
-  // منطق الفلترة حسب الدور والحالة:
-  // المدير: new + resolved + closed بس (assigned عند الجهة)
-  // الموظف: assigned لقسمه بس
-  all = all.filter(function(c) {
-    if (isAdmin) {
-      // المدير يشوف الكل دايماً
-      return true;
-    } else {
-      // الموظف يشوف assigned لقسمه بس
-      return c.status === 'assigned' && c.assignedDept === (CURRENT_USER ? CURRENT_USER.dept : '');
-    }
-  });
+  var isAdmin = isManagerMode || (CURRENT_USER && CURRENT_USER.role === 'manager' && currentEmployee === (CURRENT_USER ? CURRENT_USER.name : ''));
+  console.log('isAdmin:', isAdmin, 'isManagerMode:', isManagerMode, 'currentEmployee:', currentEmployee);
+  // نفس منطق الطلبات بالظبط:
+  // isManagerMode = المدير يشوف الكل
+  // غيره: يشوف assigned لقسمه بس
+  if (!isManagerMode) {
+    var empDept = CURRENT_USER ? CURRENT_USER.dept : '';
+    // لو غيّر الموظف من الـ dropdown، نستخدم الـ dept بتاعه من employees
+    all = all.filter(function(c) {
+      return c.status === 'assigned' && c.assignedDept === empDept;
+    });
+  }
 
-  // فلترة حسب الـ tab — للكل
-  if (currentComplaintFilter !== 'all') {
-    if (isAdmin) {
-      all = all.filter(function(c) { return c.status === currentComplaintFilter; });
-    } else {
-      // الموظف مش محتاج tab filter — role filter كافي
-    }
+  // فلترة الـ tab للمدير بس
+  if (isManagerMode && currentComplaintFilter !== 'all') {
+    all = all.filter(function(c) { return c.status === currentComplaintFilter; });
   }
 
   // ترتيب من الأحدث
@@ -7787,28 +7781,22 @@ async function buildComplaintsList() {
   console.log('complaints parsed:', all.length, all.length ? JSON.stringify(all[0]).substring(0,200) : 'empty');
 
   // فلترة حسب الـ role
-  var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager';
-  console.log('isAdmin:', isAdmin, 'CURRENT_USER:', CURRENT_USER ? CURRENT_USER.role : 'null');
-  // منطق الفلترة حسب الدور والحالة:
-  // المدير: new + resolved + closed بس (assigned عند الجهة)
-  // الموظف: assigned لقسمه بس
-  all = all.filter(function(c) {
-    if (isAdmin) {
-      // المدير يشوف الكل دايماً
-      return true;
-    } else {
-      // الموظف يشوف assigned لقسمه بس
-      return c.status === 'assigned' && c.assignedDept === (CURRENT_USER ? CURRENT_USER.dept : '');
-    }
-  });
+  var isAdmin = isManagerMode || (CURRENT_USER && CURRENT_USER.role === 'manager' && currentEmployee === (CURRENT_USER ? CURRENT_USER.name : ''));
+  console.log('isAdmin:', isAdmin, 'isManagerMode:', isManagerMode, 'currentEmployee:', currentEmployee);
+  // نفس منطق الطلبات بالظبط:
+  // isManagerMode = المدير يشوف الكل
+  // غيره: يشوف assigned لقسمه بس
+  if (!isManagerMode) {
+    var empDept = CURRENT_USER ? CURRENT_USER.dept : '';
+    // لو غيّر الموظف من الـ dropdown، نستخدم الـ dept بتاعه من employees
+    all = all.filter(function(c) {
+      return c.status === 'assigned' && c.assignedDept === empDept;
+    });
+  }
 
-  // فلترة حسب الـ tab — للكل
-  if (currentComplaintFilter !== 'all') {
-    if (isAdmin) {
-      all = all.filter(function(c) { return c.status === currentComplaintFilter; });
-    } else {
-      // الموظف مش محتاج tab filter — role filter كافي
-    }
+  // فلترة الـ tab للمدير بس
+  if (isManagerMode && currentComplaintFilter !== 'all') {
+    all = all.filter(function(c) { return c.status === currentComplaintFilter; });
   }
 
   // ترتيب من الأحدث
