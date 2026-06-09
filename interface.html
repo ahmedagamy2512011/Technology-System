@@ -7251,6 +7251,7 @@ async function buildComplaintsList() {
 
   all = all.filter(function(c) {
     if (isComplaintAdmin) return true;
+    // الموظف يشوف assigned لقسمه بس — مش new ولا resolved ولا closed
     return c.status === 'assigned' && c.assignedDept === complaintDept;
   });
 
@@ -7312,7 +7313,10 @@ async function openComplaint(id) {
   var viewingAsEmployee = CURRENT_USER && CURRENT_USER.role === 'manager' &&
     currentEmployee !== CURRENT_USER.name &&
     currentEmployee !== FRONT_DESK_NAME;
+  // isAdmin: صلاحيات الإحالة وإعادة الإحالة والإغلاق — المدير فقط بحسابه
   var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager' && !viewingAsEmployee;
+  // canResolve: الموظف المحال إليه يقدر يكتب ملاحظات ويضغط تم المعالجة
+  var canResolve = !isAdmin && c.status === 'assigned';
   var canAssign = isAdmin;
   var canClose  = isAdmin;
   var isResolved = c.status === 'resolved';
@@ -7402,14 +7406,20 @@ async function openComplaint(id) {
         '</div>'
       ) : '') +
 
-      (isAdmin && c.status === 'assigned' ? (
+      (c.status === 'assigned' && isAdmin ? (
         '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
-          '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">🔀 إعادة إحالة أو إنهاء</div>' +
+          '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">🔀 إعادة الإحالة</div>' +
           '<select id="reassign-dept-select" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:6px">' +
-            '<option value="">إعادة إحالة لجهة أخرى (اختياري)</option>' +
+            '<option value="">اختر الجهة الجديدة</option>' +
             depts.map(function(dep) { return '<option value="' + dep + '">' + dep + '</option>'; }).join('') +
           '</select>' +
-          '<button class="btn btn-ghost btn-sm" onclick="reassignComplaint(\'' + c.id + '\')" style="width:100%;margin-bottom:8px">إعادة الإحالة 🔀</button>' +
+          '<button class="btn btn-ghost btn-sm" onclick="reassignComplaint(\'' + c.id + '\')" style="width:100%">إعادة الإحالة 🔀</button>' +
+        '</div>'
+      ) : '') +
+
+      (c.status === 'assigned' && canResolve ? (
+        '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
+          '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">✅ تسجيل المعالجة</div>' +
           '<textarea id="resolve-note" placeholder="ملاحظات المعالجة..." rows="3" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px;resize:vertical;box-sizing:border-box"></textarea>' +
           '<button class="btn btn-primary btn-sm" onclick="resolveComplaint(\'' + c.id + '\')" style="width:100%">تم المعالجة ✓</button>' +
         '</div>'
@@ -7819,6 +7829,7 @@ async function buildComplaintsList() {
 
   all = all.filter(function(c) {
     if (isComplaintAdmin) return true;
+    // الموظف يشوف assigned لقسمه بس — مش new ولا resolved ولا closed
     return c.status === 'assigned' && c.assignedDept === complaintDept;
   });
 
@@ -7880,7 +7891,10 @@ async function openComplaint(id) {
   var viewingAsEmployee = CURRENT_USER && CURRENT_USER.role === 'manager' &&
     currentEmployee !== CURRENT_USER.name &&
     currentEmployee !== FRONT_DESK_NAME;
+  // isAdmin: صلاحيات الإحالة وإعادة الإحالة والإغلاق — المدير فقط بحسابه
   var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager' && !viewingAsEmployee;
+  // canResolve: الموظف المحال إليه يقدر يكتب ملاحظات ويضغط تم المعالجة
+  var canResolve = !isAdmin && c.status === 'assigned';
   var canAssign = isAdmin;
   var canClose  = isAdmin;
   var isResolved = c.status === 'resolved';
@@ -7970,14 +7984,20 @@ async function openComplaint(id) {
         '</div>'
       ) : '') +
 
-      (isAdmin && c.status === 'assigned' ? (
+      (c.status === 'assigned' && isAdmin ? (
         '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
-          '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">🔀 إعادة إحالة أو إنهاء</div>' +
+          '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">🔀 إعادة الإحالة</div>' +
           '<select id="reassign-dept-select" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:6px">' +
-            '<option value="">إعادة إحالة لجهة أخرى (اختياري)</option>' +
+            '<option value="">اختر الجهة الجديدة</option>' +
             depts.map(function(dep) { return '<option value="' + dep + '">' + dep + '</option>'; }).join('') +
           '</select>' +
-          '<button class="btn btn-ghost btn-sm" onclick="reassignComplaint(\'' + c.id + '\')" style="width:100%;margin-bottom:8px">إعادة الإحالة 🔀</button>' +
+          '<button class="btn btn-ghost btn-sm" onclick="reassignComplaint(\'' + c.id + '\')" style="width:100%">إعادة الإحالة 🔀</button>' +
+        '</div>'
+      ) : '') +
+
+      (c.status === 'assigned' && canResolve ? (
+        '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
+          '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">✅ تسجيل المعالجة</div>' +
           '<textarea id="resolve-note" placeholder="ملاحظات المعالجة..." rows="3" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px;resize:vertical;box-sizing:border-box"></textarea>' +
           '<button class="btn btn-primary btn-sm" onclick="resolveComplaint(\'' + c.id + '\')" style="width:100%">تم المعالجة ✓</button>' +
         '</div>'
