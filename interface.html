@@ -1259,6 +1259,9 @@ body {
             } catch(e) {}
           });
           if (typeof buildRequestsList === 'function') buildRequestsList();
+  // إظهار زرار شكوى جديدة للشباك الأمامي فقط
+  var newCBtn = document.getElementById('new-complaint-btn-container');
+  if (newCBtn && currentEmployee === FRONT_DESK_NAME) newCBtn.style.display = 'block';
   setTimeout(checkLateComplaints, 3000);
   setInterval(checkLateComplaints, 3600000);
           if (typeof updateSubbarCounts === 'function') updateSubbarCounts();
@@ -1788,27 +1791,59 @@ body {
   </div>
 
 <div class="page flex-page" id="page-complaints" style="display:none; overflow:hidden; flex:1">
-  <div class="sidebar" id="complaints-sidebar" style="width:300px; min-width:300px">
-    <div class="sidebar-header" style="padding:12px 16px; border-bottom:1px solid var(--border)">
-      <div style="font-size:13px; font-weight:700; color:var(--text); margin-bottom:8px">📣 الشكاوى والمقترحات</div>
-      <div style="display:flex; gap:6px; flex-wrap:wrap">
-        <button class="btn btn-ghost btn-sm complaint-filter-btn active" onclick="filterComplaints('all', this)">الكل</button>
-        <button class="btn btn-ghost btn-sm complaint-filter-btn" onclick="filterComplaints('new', this)">جديدة</button>
-        <button class="btn btn-ghost btn-sm complaint-filter-btn" id="assigned-tab-btn" onclick="filterComplaints('assigned', this)" >محالة</button>
-        <button class="btn btn-ghost btn-sm complaint-filter-btn" onclick="filterComplaints('resolved', this)">منتهية</button>
-        <button class="btn btn-ghost btn-sm complaint-filter-btn" onclick="filterComplaints('closed', this)">مغلقة</button>
+  <div class="main-wrap" style="height:100%; position:relative">
+
+    <!-- Sidebar Toggle Button -->
+    <button class="sidebar-toggle-btn" id="complaints-sidebar-toggle" onclick="toggleComplaintsSidebar()" title="طي القائمة">◀</button>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="complaints-sidebar">
+      <div class="sidebar-header" style="flex-direction:column;align-items:stretch;gap:8px;padding:10px 12px">
+
+        <!-- Header + زرار شكوى جديدة -->
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <h3>الشكاوى والمقترحات</h3>
+          <span id="complaints-list-count" style="font-size:11px;color:var(--text3)"></span>
+        </div>
+
+        <!-- زرار شكوى جديدة — للشباك الأمامي فقط -->
+        <div id="new-complaint-btn-container" style="display:none">
+          <button class="btn btn-primary btn-sm" style="width:100%" onclick="openNewComplaintModal()">
+            + شكوى جديدة
+          </button>
+        </div>
+
+        <!-- فلاتر الشكاوى — ملونة زي الطلبات -->
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="subbar-item active" id="cf-all"      onclick="filterComplaints('all',this)"      style="background:#e8edf5;color:#1a3a6b;border:none;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer">الكل</button>
+          <button class="subbar-item"        id="cf-new"      onclick="filterComplaints('new',this)"      style="background:#EEF1F9;color:#1a3a6b;border:none;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer">🆕 جديدة</button>
+          <button class="subbar-item"        id="cf-assigned" onclick="filterComplaints('assigned',this)" style="background:#FFF3CD;color:#856404;border:none;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer">📋 محالة</button>
+          <button class="subbar-item"        id="cf-resolved" onclick="filterComplaints('resolved',this)" style="background:#D1ECF1;color:#0c5460;border:none;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer">✅ منتهية</button>
+          <button class="subbar-item"        id="cf-closed"   onclick="filterComplaints('closed',this)"   style="background:#D4EDDA;color:#155724;border:none;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer">🔒 مغلقة</button>
+        </div>
+
+        <!-- بحث -->
+        <div style="position:relative">
+          <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px">🔍</span>
+          <input id="complaints-search" type="text" placeholder="بحث في الشكاوى..." oninput="buildComplaintsList()"
+            style="width:100%;padding:6px 28px 6px 8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:12px;box-sizing:border-box">
+        </div>
+      </div>
+
+      <div style="overflow-y:auto;flex:1;padding:8px" id="complaints-list-container">
+        <div style="text-align:center;color:var(--text3);padding:40px 0;font-size:13px">جارٍ التحميل...</div>
       </div>
     </div>
-    <div style="overflow-y:auto; flex:1; padding:10px" id="complaints-list-container">
-      <div style="text-align:center; color:var(--text3); padding:40px 0; font-size:13px">جارٍ التحميل...</div>
+
+    <!-- Detail Panel -->
+    <div class="content" id="complaint-detail-panel">
+      <div class="welcome-state" style="height:100%">
+        <div style="font-size:40px;margin-bottom:12px">📣</div>
+        <div style="font-size:15px;font-weight:600;color:var(--text)">اختر شكوى من القائمة</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:6px">انقر على أي شكوى لعرض تفاصيلها واتخاذ اللازم</div>
+      </div>
     </div>
-  </div>
-  <div class="complaint-detail" id="complaint-detail-panel">
-    <div class="welcome-state" style="height:100%">
-      <div style="font-size:40px; margin-bottom:12px">📣</div>
-      <div style="font-size:15px; font-weight:600; color:var(--text)">اختر شكوى من القائمة</div>
-      <div style="font-size:12px; color:var(--text3); margin-top:6px">انقر على أي شكوى لعرض تفاصيلها واتخاذ اللازم</div>
-    </div>
+
   </div>
 </div>
 
@@ -2887,6 +2922,9 @@ function initApp() {
   }
   // بعد ضبط الـ role — حدّث القائمة
   if (typeof buildRequestsList === 'function') buildRequestsList();
+  // إظهار زرار شكوى جديدة للشباك الأمامي فقط
+  var newCBtn = document.getElementById('new-complaint-btn-container');
+  if (newCBtn && currentEmployee === FRONT_DESK_NAME) newCBtn.style.display = 'block';
   setTimeout(checkLateComplaints, 3000);
   setInterval(checkLateComplaints, 3600000);
   if (typeof updateSubbarCounts === 'function') updateSubbarCounts();
@@ -3293,6 +3331,9 @@ function selectEmployee(emp) {
     var modeBtn = document.getElementById('mode-switch-btn');
     if (modeBtn) modeBtn.textContent = '🔐 دخول وضع المدير';
   }
+  // إظهار/إخفاء زرار شكوى جديدة
+  var ncBtn = document.getElementById('new-complaint-btn-container');
+  if (ncBtn) ncBtn.style.display = (emp === FRONT_DESK_NAME) ? 'block' : 'none';
   // تحديث الـ topbar
   var nameEl = document.getElementById('topbar-user-name');
   var roleEl = document.getElementById('topbar-user-role');
@@ -3711,7 +3752,72 @@ function openFchat(roomId) {
     }
   }
 
-  // placeholder حسب الغرفة
+  
+}
+
+function openNewComplaintModal() {
+  ['nc-name','nc-nid','nc-phone','nc-address','nc-text'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('nc-type').value = '';
+  document.getElementById('nc-msg').style.display = 'none';
+  document.getElementById('new-complaint-modal').style.display = 'flex';
+}
+
+async function saveNewComplaint() {
+  var name  = (document.getElementById('nc-name').value || '').trim();
+  var nid   = (document.getElementById('nc-nid').value || '').trim();
+  var phone = (document.getElementById('nc-phone').value || '').trim();
+  var addr  = (document.getElementById('nc-address').value || '').trim();
+  var type  = document.getElementById('nc-type').value;
+  var text  = (document.getElementById('nc-text').value || '').trim();
+  var msgEl = document.getElementById('nc-msg');
+
+  function showNcMsg(bg, color, msg) {
+    msgEl.style.cssText = 'display:block;background:'+bg+';color:'+color+';padding:8px;border-radius:8px;font-size:12px;margin-bottom:10px;text-align:center';
+    msgEl.textContent = msg;
+  }
+
+  if (!name || !phone || !type || !text) { showNcMsg('#fdecea','#c0392b','يرجى ملء الحقول المطلوبة'); return; }
+
+  var now = new Date();
+  var id = 'CMP-' + now.getFullYear() + '-' + (Math.floor(Math.random()*9000)+1000);
+  var body = { fields: {
+    id:           { stringValue: id },
+    name:         { stringValue: name },
+    nid:          { stringValue: nid },
+    phone:        { stringValue: phone },
+    address:      { stringValue: addr },
+    telegramChatId: { stringValue: '' },
+    type:         { stringValue: type },
+    text:         { stringValue: text },
+    status:       { stringValue: 'new' },
+    assignedTo:   { stringValue: '' },
+    assignedDept: { stringValue: '' },
+    createdAt:    { stringValue: now.toISOString() },
+    updatedAt:    { stringValue: now.toISOString() },
+    steps: { arrayValue: { values: [{ mapValue: { fields: {
+      s:    { stringValue: 'new' },
+      t:    { stringValue: now.toISOString() },
+      by:   { stringValue: currentEmployee || 'الشباك الأمامي' },
+      note: { stringValue: 'تم التسجيل من المنظومة' }
+    }}}]}}
+  }};
+
+  showNcMsg('#eef1f9','#1a3a6b','جارٍ الحفظ...');
+  try {
+    await fetch('https://firestore.googleapis.com/v1/projects/petitions-wadi/databases/(default)/documents/complaints/' + id, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    document.getElementById('new-complaint-modal').style.display = 'none';
+    toast('success', 'تم التسجيل', 'رقم الشكوى: ' + id);
+    buildComplaintsList();
+  } catch(e) {
+    showNcMsg('#fdecea','#c0392b','⚠️ خطأ في الحفظ — حاول مرة أخرى');
+  }
+}
+
+function openChatRoom(roomId) {
   var inputEl = document.getElementById('fchat-input');
   if (inputEl) {
     if (roomId === 'general') inputEl.placeholder = 'اكتب للجميع...';
@@ -7073,6 +7179,58 @@ function exportTable() {
 </div>
 
 
+
+<!-- ============================================================
+     NEW COMPLAINT MODAL
+     ============================================================ -->
+<div id="new-complaint-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(3px)">
+  <div style="background:white;border-radius:16px;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;direction:rtl;box-shadow:0 24px 64px rgba(0,0,0,0.25)">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:15px;font-weight:700;color:var(--primary)">📣 تسجيل شكوى جديدة</div>
+      <button onclick="document.getElementById('new-complaint-modal').style.display='none'" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text3)">✕</button>
+    </div>
+    <div style="padding:16px 20px">
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">اسم المواطن <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="nc-name" placeholder="الاسم الرباعي" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;box-sizing:border-box">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div>
+          <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">الرقم القومي</label>
+          <input type="text" id="nc-nid" placeholder="14 رقماً" maxlength="14" dir="ltr" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">رقم الهاتف <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="nc-phone" placeholder="01XXXXXXXXX" dir="ltr" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;box-sizing:border-box">
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">العنوان</label>
+        <input type="text" id="nc-address" placeholder="المحافظة / المركز / الشارع" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">نوع الشكوى <span style="color:var(--danger)">*</span></label>
+        <select id="nc-type" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;box-sizing:border-box">
+          <option value="">اختر النوع</option>
+          <option value="مياه">💧 مياه</option>
+          <option value="كهرباء">⚡ كهرباء</option>
+          <option value="قمامة">🗑️ قمامة</option>
+          <option value="طرق">🚧 طرق</option>
+          <option value="إشغالات">🏗️ إشغالات</option>
+          <option value="مقترح">💡 مقترح</option>
+          <option value="أخرى">📌 أخرى</option>
+        </select>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">نص الشكوى <span style="color:var(--danger)">*</span></label>
+        <textarea id="nc-text" rows="4" placeholder="اكتب الشكوى بالتفصيل..." style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;resize:vertical;box-sizing:border-box"></textarea>
+      </div>
+      <div id="nc-msg" style="display:none;padding:8px;border-radius:8px;font-size:12px;margin-bottom:10px;text-align:center"></div>
+      <button onclick="saveNewComplaint()" style="width:100%;padding:11px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:Cairo,sans-serif;cursor:pointer">حفظ الشكوى ✓</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============================================================
      EMPLOYEES MANAGER MODAL (للمدير فقط)
      ============================================================ -->
@@ -7282,7 +7440,19 @@ async function buildComplaintsList() {
     return;
   }
 
-  console.log('rendering', all.length, 'complaints, container:', container ? 'found' : 'NOT FOUND');
+  // تحديث العداد
+  var countEl = document.getElementById('complaints-list-count');
+  if (countEl) countEl.textContent = all.length + ' شكوى';
+  // فلترة البحث
+  var searchVal = (document.getElementById('complaints-search') ? document.getElementById('complaints-search').value : '').trim().toLowerCase();
+  if (searchVal) {
+    all = all.filter(function(c) {
+      return (c.id||'').toLowerCase().includes(searchVal) ||
+             (c.text||'').includes(searchVal) ||
+             (c.name||'').includes(searchVal) ||
+             (c.type||'').includes(searchVal);
+    });
+  }
   container.innerHTML = all.map(function(c) {
     var isSelected = c.id === currentComplaintId;
     console.log('card:', c.id, c.status, c.type);
@@ -7302,8 +7472,11 @@ async function buildComplaintsList() {
 
 function filterComplaints(filter, btn) {
   currentComplaintFilter = filter;
-  document.querySelectorAll('.complaint-filter-btn').forEach(function(b) { b.classList.remove('active'); });
-  if (btn) btn.classList.add('active');
+  document.querySelectorAll('#page-complaints .subbar-item').forEach(function(b) {
+    b.style.fontWeight = '600';
+    b.style.opacity = '0.7';
+  });
+  if (btn) { btn.style.opacity = '1'; btn.style.fontWeight = '800'; }
   buildComplaintsList();
 }
 
@@ -7533,6 +7706,24 @@ async function urgentComplaint(id) {
   }
   toast('success', 'تم الاستعجال', 'تم تسجيل الاستعجال في سجل الأحداث');
   openComplaint(id);
+}
+
+
+var _complaintsSidebarCollapsed = false;
+function toggleComplaintsSidebar() {
+  var sidebar = document.getElementById('complaints-sidebar');
+  var btn = document.getElementById('complaints-sidebar-toggle');
+  if (!sidebar || !btn) return;
+  _complaintsSidebarCollapsed = !_complaintsSidebarCollapsed;
+  if (_complaintsSidebarCollapsed) {
+    sidebar.classList.add('collapsed');
+    btn.style.right = '-14px';
+    btn.textContent = '▶';
+  } else {
+    sidebar.classList.remove('collapsed');
+    btn.style.right = 'calc(300px - 14px)';
+    btn.textContent = '◀';
+  }
 }
 
 // إعادة إحالة الشكوى
@@ -7672,6 +7863,58 @@ function sendTelegramMsg(chatId, text) {
 </body>
 </htm
 
+
+<!-- ============================================================
+     NEW COMPLAINT MODAL
+     ============================================================ -->
+<div id="new-complaint-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(3px)">
+  <div style="background:white;border-radius:16px;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;direction:rtl;box-shadow:0 24px 64px rgba(0,0,0,0.25)">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:15px;font-weight:700;color:var(--primary)">📣 تسجيل شكوى جديدة</div>
+      <button onclick="document.getElementById('new-complaint-modal').style.display='none'" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text3)">✕</button>
+    </div>
+    <div style="padding:16px 20px">
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">اسم المواطن <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="nc-name" placeholder="الاسم الرباعي" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;box-sizing:border-box">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div>
+          <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">الرقم القومي</label>
+          <input type="text" id="nc-nid" placeholder="14 رقماً" maxlength="14" dir="ltr" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">رقم الهاتف <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="nc-phone" placeholder="01XXXXXXXXX" dir="ltr" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;box-sizing:border-box">
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">العنوان</label>
+        <input type="text" id="nc-address" placeholder="المحافظة / المركز / الشارع" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">نوع الشكوى <span style="color:var(--danger)">*</span></label>
+        <select id="nc-type" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;box-sizing:border-box">
+          <option value="">اختر النوع</option>
+          <option value="مياه">💧 مياه</option>
+          <option value="كهرباء">⚡ كهرباء</option>
+          <option value="قمامة">🗑️ قمامة</option>
+          <option value="طرق">🚧 طرق</option>
+          <option value="إشغالات">🏗️ إشغالات</option>
+          <option value="مقترح">💡 مقترح</option>
+          <option value="أخرى">📌 أخرى</option>
+        </select>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">نص الشكوى <span style="color:var(--danger)">*</span></label>
+        <textarea id="nc-text" rows="4" placeholder="اكتب الشكوى بالتفصيل..." style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;resize:vertical;box-sizing:border-box"></textarea>
+      </div>
+      <div id="nc-msg" style="display:none;padding:8px;border-radius:8px;font-size:12px;margin-bottom:10px;text-align:center"></div>
+      <button onclick="saveNewComplaint()" style="width:100%;padding:11px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:Cairo,sans-serif;cursor:pointer">حفظ الشكوى ✓</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============================================================
      EMPLOYEES MANAGER MODAL (للمدير فقط)
      ============================================================ -->
@@ -7881,7 +8124,19 @@ async function buildComplaintsList() {
     return;
   }
 
-  console.log('rendering', all.length, 'complaints, container:', container ? 'found' : 'NOT FOUND');
+  // تحديث العداد
+  var countEl = document.getElementById('complaints-list-count');
+  if (countEl) countEl.textContent = all.length + ' شكوى';
+  // فلترة البحث
+  var searchVal = (document.getElementById('complaints-search') ? document.getElementById('complaints-search').value : '').trim().toLowerCase();
+  if (searchVal) {
+    all = all.filter(function(c) {
+      return (c.id||'').toLowerCase().includes(searchVal) ||
+             (c.text||'').includes(searchVal) ||
+             (c.name||'').includes(searchVal) ||
+             (c.type||'').includes(searchVal);
+    });
+  }
   container.innerHTML = all.map(function(c) {
     var isSelected = c.id === currentComplaintId;
     console.log('card:', c.id, c.status, c.type);
@@ -7901,8 +8156,11 @@ async function buildComplaintsList() {
 
 function filterComplaints(filter, btn) {
   currentComplaintFilter = filter;
-  document.querySelectorAll('.complaint-filter-btn').forEach(function(b) { b.classList.remove('active'); });
-  if (btn) btn.classList.add('active');
+  document.querySelectorAll('#page-complaints .subbar-item').forEach(function(b) {
+    b.style.fontWeight = '600';
+    b.style.opacity = '0.7';
+  });
+  if (btn) { btn.style.opacity = '1'; btn.style.fontWeight = '800'; }
   buildComplaintsList();
 }
 
@@ -8132,6 +8390,24 @@ async function urgentComplaint(id) {
   }
   toast('success', 'تم الاستعجال', 'تم تسجيل الاستعجال في سجل الأحداث');
   openComplaint(id);
+}
+
+
+var _complaintsSidebarCollapsed = false;
+function toggleComplaintsSidebar() {
+  var sidebar = document.getElementById('complaints-sidebar');
+  var btn = document.getElementById('complaints-sidebar-toggle');
+  if (!sidebar || !btn) return;
+  _complaintsSidebarCollapsed = !_complaintsSidebarCollapsed;
+  if (_complaintsSidebarCollapsed) {
+    sidebar.classList.add('collapsed');
+    btn.style.right = '-14px';
+    btn.textContent = '▶';
+  } else {
+    sidebar.classList.remove('collapsed');
+    btn.style.right = 'calc(300px - 14px)';
+    btn.textContent = '◀';
+  }
 }
 
 // إعادة إحالة الشكوى
