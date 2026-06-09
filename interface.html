@@ -7610,7 +7610,8 @@ async function updateComplaintStatus(id, newStatus, extra) {
     var existingSteps = (current.fields.steps && current.fields.steps.arrayValue && current.fields.steps.arrayValue.values) || [];
     var nowDate = new Date(now);
     var nowStr = nowDate.toLocaleString('ar-EG', {year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});
-    var byName = CURRENT_USER ? (CURRENT_USER.name + ' — ' + CURRENT_USER.dept) : 'النظام';
+    // استخدم currentEmployee كاسم المنفذ — يعكس الدور المختار فعلاً
+    var byName = currentEmployee || (CURRENT_USER ? CURRENT_USER.name : 'النظام');
     var newStep = { mapValue: { fields: {
       s:    { stringValue: newStatus },
       t:    { stringValue: now },
@@ -8184,7 +8185,8 @@ async function updateComplaintStatus(id, newStatus, extra) {
     var existingSteps = (current.fields.steps && current.fields.steps.arrayValue && current.fields.steps.arrayValue.values) || [];
     var nowDate = new Date(now);
     var nowStr = nowDate.toLocaleString('ar-EG', {year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});
-    var byName = CURRENT_USER ? (CURRENT_USER.name + ' — ' + CURRENT_USER.dept) : 'النظام';
+    // استخدم currentEmployee كاسم المنفذ — يعكس الدور المختار فعلاً
+    var byName = currentEmployee || (CURRENT_USER ? CURRENT_USER.name : 'النظام');
     var newStep = { mapValue: { fields: {
       s:    { stringValue: newStatus },
       t:    { stringValue: now },
