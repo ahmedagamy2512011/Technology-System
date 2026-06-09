@@ -1549,6 +1549,14 @@ body {
   <button class="subbar-tab" onclick="filterLetters('pending', this)">قيد الإجراء <span class="subbar-count amber" id="lcnt-pending">0</span></button>
 </div>
 
+<div class="subbar" id="subbar-complaints" style="display:none">
+  <button class="subbar-tab active" onclick="filterComplaints('all',this)">الكل <span class="subbar-count" id="ccnt-all">0</span></button>
+  <button class="subbar-tab" onclick="filterComplaints('new',this)">جديدة <span class="subbar-count" id="ccnt-new">0</span></button>
+  <button class="subbar-tab" onclick="filterComplaints('assigned',this)">محالة <span class="subbar-count amber" id="ccnt-assigned">0</span></button>
+  <button class="subbar-tab" onclick="filterComplaints('resolved',this)">منتهية <span class="subbar-count teal" id="ccnt-resolved">0</span></button>
+  <button class="subbar-tab" onclick="filterComplaints('closed',this)">مغلقة <span class="subbar-count" style="background:#155724" id="ccnt-closed">0</span></button>
+</div>
+
 <!-- MAIN CONTENT -->
 <div style="display:flex; height:calc(100vh - 96px); position:relative">
 
@@ -1799,46 +1807,27 @@ body {
     <!-- Sidebar -->
     <div class="sidebar" id="complaints-sidebar">
       <div class="sidebar-header" style="flex-direction:column;align-items:stretch;gap:8px;padding:10px 12px">
-
-        <!-- Header + زرار شكوى جديدة -->
         <div style="display:flex;align-items:center;justify-content:space-between">
           <h3>الشكاوى والمقترحات</h3>
           <span id="complaints-list-count" style="font-size:11px;color:var(--text3)"></span>
         </div>
-
-        <!-- زرار شكوى جديدة — للشباك الأمامي فقط -->
-        <div id="new-complaint-btn-container" style="display:none">
-          <button class="btn btn-primary btn-sm" style="width:100%" onclick="openNewComplaintModal()">
-            + شكوى جديدة
-          </button>
-        </div>
-
-        <!-- فلاتر الشكاوى — ملونة زي الطلبات -->
-        <div style="display:flex;gap:4px;flex-wrap:wrap">
-          <button class="subbar-item active" id="cf-all"      onclick="filterComplaints('all',this)"      style="background:#e8edf5;color:#1a3a6b;border:none;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer">الكل</button>
-          <button class="subbar-item"        id="cf-new"      onclick="filterComplaints('new',this)"      style="background:#EEF1F9;color:#1a3a6b;border:none;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer">🆕 جديدة</button>
-          <button class="subbar-item"        id="cf-assigned" onclick="filterComplaints('assigned',this)" style="background:#FFF3CD;color:#856404;border:none;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer">📋 محالة</button>
-          <button class="subbar-item"        id="cf-resolved" onclick="filterComplaints('resolved',this)" style="background:#D1ECF1;color:#0c5460;border:none;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer">✅ منتهية</button>
-          <button class="subbar-item"        id="cf-closed"   onclick="filterComplaints('closed',this)"   style="background:#D4EDDA;color:#155724;border:none;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer">🔒 مغلقة</button>
-        </div>
-
-        <!-- بحث -->
-        <div style="position:relative">
-          <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px">🔍</span>
-          <input id="complaints-search" type="text" placeholder="بحث في الشكاوى..." oninput="buildComplaintsList()"
-            style="width:100%;padding:6px 28px 6px 8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:12px;box-sizing:border-box">
+        <div style="display:flex;gap:6px" id="new-complaint-btn-container" style="display:none">
+          <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center" onclick="openNewComplaintModal()">+ شكوى جديدة</button>
         </div>
       </div>
-
-      <div style="overflow-y:auto;flex:1;padding:8px" id="complaints-list-container">
+      <div class="sidebar-search">
+        <input class="search-input" id="complaints-search" placeholder="بحث في الشكاوى..." oninput="buildComplaintsList()">
+        <span class="search-icon">🔍</span>
+      </div>
+      <div class="requests-list" id="complaints-list-container">
         <div style="text-align:center;color:var(--text3);padding:40px 0;font-size:13px">جارٍ التحميل...</div>
       </div>
     </div>
 
     <!-- Detail Panel -->
     <div class="content" id="complaint-detail-panel">
-      <div class="welcome-state" style="height:100%">
-        <div style="font-size:40px;margin-bottom:12px">📣</div>
+      <div class="welcome-state">
+        <div class="icon">📣</div>
         <div style="font-size:15px;font-weight:600;color:var(--text)">اختر شكوى من القائمة</div>
         <div style="font-size:12px;color:var(--text3);margin-top:6px">انقر على أي شكوى لعرض تفاصيلها واتخاذ اللازم</div>
       </div>
@@ -3055,6 +3044,8 @@ function showMain(name, btn) {
   document.querySelectorAll('.topbar-btn').forEach(function(b){ b.classList.remove('active'); });
   if (btn) btn.classList.add('active');
   // subbars
+  var sbComp = document.getElementById('subbar-complaints');
+  if (sbComp) sbComp.style.display = 'none';
   var sbReq = document.getElementById('subbar-requests');
   var sbLet = document.getElementById('subbar-letters');
   if (sbReq) sbReq.style.display = name==='requests' ? 'flex' : 'none';
@@ -3065,7 +3056,12 @@ function showMain(name, btn) {
   if (name==='overview')  refreshAll();
   if (name==='manager')   { buildManagerPage(); updateManagerLabel(true); return; }
   if (name==='inquiries') buildInquiriesList();
-  if (name==='complaints') buildComplaintsList();
+  if (name==='complaints') {
+    buildComplaintsList();
+    updateComplaintsSubbar();
+    var sb = document.getElementById('subbar-complaints');
+    if (sb) sb.style.display = 'flex';
+  }
   // manager mode label
   updateManagerLabel(false);
   if (!CURRENT_USER || CURRENT_USER.role !== 'manager') {
@@ -7472,11 +7468,8 @@ async function buildComplaintsList() {
 
 function filterComplaints(filter, btn) {
   currentComplaintFilter = filter;
-  document.querySelectorAll('#page-complaints .subbar-item').forEach(function(b) {
-    b.style.fontWeight = '600';
-    b.style.opacity = '0.7';
-  });
-  if (btn) { btn.style.opacity = '1'; btn.style.fontWeight = '800'; }
+  document.querySelectorAll('#subbar-complaints .subbar-tab').forEach(function(b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
   buildComplaintsList();
 }
 
@@ -7813,6 +7806,19 @@ async function closeComplaint(id) {
 }
 
 // تحديث الحالة في Firebase
+function updateComplaintsSubbar() {
+  loadComplaints().then(function(all) {
+    var counts = { all: all.length, new: 0, assigned: 0, resolved: 0, closed: 0 };
+    all.forEach(function(c) { if (counts[c.status] !== undefined) counts[c.status]++; });
+    Object.keys(counts).forEach(function(k) {
+      var el = document.getElementById('ccnt-' + k);
+      if (el) el.textContent = counts[k];
+    });
+    var countEl = document.getElementById('complaints-list-count');
+    if (countEl) countEl.textContent = all.length + ' شكوى';
+  });
+}
+
 async function updateComplaintStatus(id, newStatus, extra) {
   var FB_C = 'https://firestore.googleapis.com/v1/projects/petitions-wadi/databases/(default)/documents/complaints/' + id;
   try {
@@ -8156,11 +8162,8 @@ async function buildComplaintsList() {
 
 function filterComplaints(filter, btn) {
   currentComplaintFilter = filter;
-  document.querySelectorAll('#page-complaints .subbar-item').forEach(function(b) {
-    b.style.fontWeight = '600';
-    b.style.opacity = '0.7';
-  });
-  if (btn) { btn.style.opacity = '1'; btn.style.fontWeight = '800'; }
+  document.querySelectorAll('#subbar-complaints .subbar-tab').forEach(function(b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
   buildComplaintsList();
 }
 
@@ -8497,6 +8500,19 @@ async function closeComplaint(id) {
 }
 
 // تحديث الحالة في Firebase
+function updateComplaintsSubbar() {
+  loadComplaints().then(function(all) {
+    var counts = { all: all.length, new: 0, assigned: 0, resolved: 0, closed: 0 };
+    all.forEach(function(c) { if (counts[c.status] !== undefined) counts[c.status]++; });
+    Object.keys(counts).forEach(function(k) {
+      var el = document.getElementById('ccnt-' + k);
+      if (el) el.textContent = counts[k];
+    });
+    var countEl = document.getElementById('complaints-list-count');
+    if (countEl) countEl.textContent = all.length + ' شكوى';
+  });
+}
+
 async function updateComplaintStatus(id, newStatus, extra) {
   var FB_C = 'https://firestore.googleapis.com/v1/projects/petitions-wadi/databases/(default)/documents/complaints/' + id;
   try {
