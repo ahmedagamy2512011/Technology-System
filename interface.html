@@ -1485,7 +1485,7 @@ body {
         </div>
         <div style="height:1px;background:var(--border);margin:2px 0"></div>
         <div class="user-dropdown-item" style="font-weight:700;color:var(--text3);cursor:default;font-size:10px;text-transform:uppercase">👤 تبديل الموظف</div>
-        <div class="user-dropdown-item" onclick="selectEmployee('أحمد عادل (الشباك الأمامي)'); closeUserMenu()">أحمد عادل — الشباك الأمامي</div>
+        <div class="user-dropdown-item" onclick="selectEmployee('الشباك الأمامي'); closeUserMenu()">أحمد عادل — الشباك الأمامي</div>
         <div class="user-dropdown-item" onclick="selectEmployee('موظف الحصر'); closeUserMenu()">موظف الحصر</div>
         <div class="user-dropdown-item" onclick="selectEmployee('موظف التقنين'); closeUserMenu()">موظف التقنين</div>
         <div class="user-dropdown-item" onclick="selectEmployee('صندوق الأراضي'); closeUserMenu()">صندوق الأراضي</div>
@@ -1503,7 +1503,6 @@ body {
           <span id="pending-emp-badge"></span>
         </div>
         <div class="user-dropdown-item" onclick="doLogout()" style="color:var(--danger)">🚪 تسجيل الخروج</div>
-        <div class="user-dropdown-item" onclick="closeUserMenu()">🚪 تسجيل الخروج</div>
       </div>
     </div>
 
@@ -2682,8 +2681,8 @@ var currentRequestId = null;
 var currentFilter = 'all';
 var activeCenter = 'all';
 var isManagerMode = false;
-var currentEmployee = 'أحمد عادل (الشباك الأمامي)';
-var FRONT_DESK_NAME = 'أحمد عادل (الشباك الأمامي)'; // الموظف الوحيد اللي يقدر يضيف طلبات
+var currentEmployee = 'الشباك الأمامي';
+var FRONT_DESK_NAME = 'الشباك الأمامي'; // الموظف الوحيد اللي يقدر يضيف طلبات
 var currentEmployeeFilter = 'all';
 var currentAssignId = null;
 var currentAssignNext = null;
