@@ -3036,10 +3036,16 @@ function showMain(name, btn) {
     var modeBtn = document.getElementById('mode-switch-btn');
     if (modeBtn) modeBtn.textContent = '🔐 دخول وضع المدير';
   }
+  // المدير يفضل isManagerMode = true دايماً
 }
 
 function updateManagerLabel(isManager) {
-  isManagerMode = isManager;
+  // المدير: isManagerMode يتحكم فيه selectEmployee مش showMain
+  if (CURRENT_USER && CURRENT_USER.role === 'manager') {
+    // مش بنغير isManagerMode هنا — بيتحكم فيه selectEmployee وtoggleManagerMode
+  } else {
+    isManagerMode = isManager;
+  }
   var nameEl  = document.getElementById('topbar-user-name');
   var roleEl  = document.getElementById('topbar-user-role');
   var switchBtn = document.getElementById('mode-switch-btn');
@@ -3282,6 +3288,11 @@ function selectEmployee(emp) {
   currentViewDept = emp; // نفس قيمة assignedDept
   // فلتر: الشباك الأمامي يشوف كل الطلبات، غيره يشوف طلباته فقط
   currentEmployeeFilter = (emp === FRONT_DESK_NAME) ? 'all' : emp;
+  // لما المدير يغير لموظف → isManagerMode = false (يشوف زيه)
+  // لما يرجع لاسمه → isManagerMode = true
+  if (CURRENT_USER && CURRENT_USER.role === 'manager') {
+    isManagerMode = (emp === CURRENT_USER.name);
+  }
   // تحديث الـ topbar
   var nameEl = document.getElementById('topbar-user-name');
   var roleEl = document.getElementById('topbar-user-role');
@@ -7243,11 +7254,10 @@ async function buildComplaintsList() {
   // المدير ودور = manager → يشوف الكل
   // المدير بيتصفح موظف آخر (currentEmployee != اسمه) → يشوف زي الموظف
   // موظف عادي → يشوف assigned لقسمه
-  var viewingAsEmployee = CURRENT_USER && CURRENT_USER.role === 'manager' &&
-    currentEmployee !== CURRENT_USER.name &&
-    currentEmployee !== FRONT_DESK_NAME;
-  var isComplaintAdmin = CURRENT_USER && CURRENT_USER.role === 'manager' && !viewingAsEmployee;
-  var complaintDept = viewingAsEmployee ? currentEmployee : (CURRENT_USER ? CURRENT_USER.dept : '');
+  // isManagerMode = true → مدير يشوف الكل
+  // isManagerMode = false → موظف (أو مدير بيتصفح موظف) يشوف قسمه بس
+  var isComplaintAdmin = isManagerMode;
+  var complaintDept = currentEmployee;
 
   all = all.filter(function(c) {
     if (isComplaintAdmin) return true;
@@ -7310,12 +7320,9 @@ async function openComplaint(id) {
   var c = all.find(function(x) { return x.id === id; });
   if (!c) return;
 
-  var viewingAsEmployee = CURRENT_USER && CURRENT_USER.role === 'manager' &&
-    currentEmployee !== CURRENT_USER.name &&
-    currentEmployee !== FRONT_DESK_NAME;
-  // isAdmin: صلاحيات الإحالة وإعادة الإحالة والإغلاق — المدير فقط بحسابه
-  var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager' && !viewingAsEmployee;
-  // canResolve: الموظف المحال إليه يقدر يكتب ملاحظات ويضغط تم المعالجة
+  // isAdmin = المدير في وضع المدير (isManagerMode=true)
+  // canResolve = الموظف العادي أو المدير وهو يتصفح حساب موظف
+  var isAdmin = isManagerMode;
   var canResolve = !isAdmin && c.status === 'assigned';
   var canAssign = isAdmin;
   var canClose  = isAdmin;
@@ -7821,11 +7828,10 @@ async function buildComplaintsList() {
   // المدير ودور = manager → يشوف الكل
   // المدير بيتصفح موظف آخر (currentEmployee != اسمه) → يشوف زي الموظف
   // موظف عادي → يشوف assigned لقسمه
-  var viewingAsEmployee = CURRENT_USER && CURRENT_USER.role === 'manager' &&
-    currentEmployee !== CURRENT_USER.name &&
-    currentEmployee !== FRONT_DESK_NAME;
-  var isComplaintAdmin = CURRENT_USER && CURRENT_USER.role === 'manager' && !viewingAsEmployee;
-  var complaintDept = viewingAsEmployee ? currentEmployee : (CURRENT_USER ? CURRENT_USER.dept : '');
+  // isManagerMode = true → مدير يشوف الكل
+  // isManagerMode = false → موظف (أو مدير بيتصفح موظف) يشوف قسمه بس
+  var isComplaintAdmin = isManagerMode;
+  var complaintDept = currentEmployee;
 
   all = all.filter(function(c) {
     if (isComplaintAdmin) return true;
@@ -7888,12 +7894,9 @@ async function openComplaint(id) {
   var c = all.find(function(x) { return x.id === id; });
   if (!c) return;
 
-  var viewingAsEmployee = CURRENT_USER && CURRENT_USER.role === 'manager' &&
-    currentEmployee !== CURRENT_USER.name &&
-    currentEmployee !== FRONT_DESK_NAME;
-  // isAdmin: صلاحيات الإحالة وإعادة الإحالة والإغلاق — المدير فقط بحسابه
-  var isAdmin = CURRENT_USER && CURRENT_USER.role === 'manager' && !viewingAsEmployee;
-  // canResolve: الموظف المحال إليه يقدر يكتب ملاحظات ويضغط تم المعالجة
+  // isAdmin = المدير في وضع المدير (isManagerMode=true)
+  // canResolve = الموظف العادي أو المدير وهو يتصفح حساب موظف
+  var isAdmin = isManagerMode;
   var canResolve = !isAdmin && c.status === 'assigned';
   var canAssign = isAdmin;
   var canClose  = isAdmin;
