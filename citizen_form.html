@@ -690,16 +690,10 @@
         </div>
       </div>
 
-      <!-- إرفاق مستندات -->
+      <!-- إرفاق مستندات - 6 slots -->
       <div class="card">
         <div class="card-title">📎 إرفاق مستندات (اختياري)</div>
-        <div id="complaint-docs-list"></div>
-        <div class="id-upload" onclick="document.getElementById('c-doc-file').click()" style="margin-top:8px">
-          <input type="file" id="c-doc-file" accept="image/*,application/pdf" multiple style="display:none" onchange="handleComplaintDocUpload(event)">
-          <div class="id-upload-icon">📎</div>
-          <p>اضغط لرفع مستند</p>
-          <small>صور أو PDF — يمكن رفع أكثر من ملف</small>
-        </div>
+        <div id="complaint-docs-slots"></div>
       </div>
 
       <div id="complaint-msg" style="display:none;padding:12px;border-radius:8px;font-size:13px;margin-bottom:12px;text-align:center"></div>
@@ -1514,6 +1508,56 @@ function showTab(tab) {
   const sec = document.getElementById('section-' + tab);
   if (sec) sec.style.display = 'block';
   if (tab === 'my-complaints') loadMyComplaints();
+  if (tab === 'complaint') initComplaintDocSlots();
+}
+
+
+// ── مستندات الشكوى — 6 slots ─────────────────────────────────────────────
+const COMPLAINT_DOC_LABELS = [
+  'بطاقة الرقم القومي',
+  'مستند 1', 'مستند 2', 'مستند 3', 'مستند 4', 'مستند 5'
+];
+window._complaintDocsData = new Array(6).fill(null);
+
+function initComplaintDocSlots() {
+  const container = document.getElementById('complaint-docs-slots');
+  if (!container || container.children.length > 0) return;
+  container.innerHTML = COMPLAINT_DOC_LABELS.map((label, i) =>
+    '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:0.5px solid var(--border)">' +
+      '<span style="font-size:15px">📄</span>' +
+      '<span style="flex:1;font-size:13px;color:var(--dark)">' + label + '</span>' +
+      '<span id="cdoc-name-' + i + '" style="font-size:11px;color:var(--green);display:none;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>' +
+      '<input type="file" id="cdoc-input-' + i + '" accept="image/*,application/pdf" style="display:none" onchange="handleSlotUpload(' + i + ', event)">' +
+      '<button onclick="triggerDocInput(' + i + ')" style="background:var(--green);color:white;border:none;border-radius:8px;padding:5px 12px;font-size:11px;font-family:Cairo,sans-serif;cursor:pointer;white-space:nowrap">📤 رفع</button>' +
+      '<a id="cdoc-view-' + i + '" href="#" target="_blank" style="display:none;background:var(--green-pale);color:var(--green);border-radius:8px;padding:5px 10px;font-size:11px;text-decoration:none;white-space:nowrap">👁 عرض</a>' +
+      '<button id="cdoc-del-' + i + '" onclick="deleteSlotDoc(' + i + ')" style="display:none;background:#fdecea;color:#c0392b;border:none;border-radius:8px;padding:5px 8px;font-size:11px;cursor:pointer">🗑</button>' +
+    '</div>'
+  ).join('');
+}
+
+function triggerDocInput(idx) { document.getElementById("cdoc-input-" + idx).click(); }
+
+function handleSlotUpload(idx, event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    window._complaintDocsData[idx] = { name: file.name, dataUrl: e.target.result, mimeType: file.type || 'application/octet-stream' };
+    document.getElementById('cdoc-name-' + idx).textContent = file.name;
+    document.getElementById('cdoc-name-' + idx).style.display = 'inline';
+    document.getElementById('cdoc-view-' + idx).href = e.target.result;
+    document.getElementById('cdoc-view-' + idx).style.display = 'inline';
+    document.getElementById('cdoc-del-' + idx).style.display = 'inline';
+  };
+  reader.readAsDataURL(file);
+}
+
+function deleteSlotDoc(idx) {
+  window._complaintDocsData[idx] = null;
+  document.getElementById('cdoc-name-' + idx).style.display = 'none';
+  document.getElementById('cdoc-view-' + idx).style.display = 'none';
+  document.getElementById('cdoc-del-' + idx).style.display = 'none';
+  document.getElementById('cdoc-input-' + idx).value = '';
 }
 
 async function handleComplaintIdUpload(event) {
@@ -1582,7 +1626,13 @@ async function submitComplaint() {
     steps: { arrayValue: { values: [{ mapValue: { fields: {
       s: { stringValue: 'new' }, t: { stringValue: now.toISOString() },
       by: { stringValue: 'بوابة المواطن' }, note: { stringValue: '' }
-    }}}]}}
+    }}}]}},
+    docs: { arrayValue: { values: (window._complaintDocsData || []).filter(function(d){ return d !== null; }).map(function(d) { return {
+      mapValue: { fields: {
+        name:     { stringValue: d.name },
+        mimeType: { stringValue: d.mimeType }
+      }}
+    };})}}
   }};
   showMsg('#eef1f9','#1a6b3c','جارٍ الإرسال...');
   try {
