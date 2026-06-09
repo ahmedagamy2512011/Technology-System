@@ -3288,10 +3288,11 @@ function selectEmployee(emp) {
   currentViewDept = emp; // نفس قيمة assignedDept
   // فلتر: الشباك الأمامي يشوف كل الطلبات، غيره يشوف طلباته فقط
   currentEmployeeFilter = (emp === FRONT_DESK_NAME) ? 'all' : emp;
-  // لما المدير يغير لموظف → isManagerMode = false (يشوف زيه)
-  // لما يرجع لاسمه → isManagerMode = true
+  // لما بتبدل لأي موظف → اخرج من وضع المدير تلقائياً
   if (CURRENT_USER && CURRENT_USER.role === 'manager') {
-    isManagerMode = (emp === CURRENT_USER.name);
+    isManagerMode = false;
+    var modeBtn = document.getElementById('mode-switch-btn');
+    if (modeBtn) modeBtn.textContent = '🔐 دخول وضع المدير';
   }
   // تحديث الـ topbar
   var nameEl = document.getElementById('topbar-user-name');
