@@ -7366,8 +7366,16 @@ async function openComplaint(id) {
             '<div style="font-size:13px;font-weight:600;color:var(--text)">' + (c.name || '—') + '</div>' +
           '</div>' +
           '<div>' +
+            '<div style="font-size:10px;color:var(--text3);margin-bottom:2px">الرقم القومي</div>' +
+            '<div style="font-size:13px;font-weight:600;color:var(--text);direction:ltr;text-align:right">' + (c.nid || '—') + '</div>' +
+          '</div>' +
+          '<div>' +
             '<div style="font-size:10px;color:var(--text3);margin-bottom:2px">رقم الهاتف</div>' +
             '<div style="font-size:13px;font-weight:600;color:var(--text);direction:ltr;text-align:right">' + (c.phone || '—') + '</div>' +
+          '</div>' +
+          '<div style="grid-column:1/-1">' +
+            '<div style="font-size:10px;color:var(--text3);margin-bottom:2px">العنوان</div>' +
+            '<div style="font-size:12px;color:var(--text)">' + (c.address || '—') + '</div>' +
           '</div>' +
           '<div>' +
             '<div style="font-size:10px;color:var(--text3);margin-bottom:2px">تاريخ التقديم</div>' +
@@ -7390,6 +7398,22 @@ async function openComplaint(id) {
 
       '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">سجل الأحداث</div>' +
       '<div class="complaint-steps">' + stepsHTML + '</div>' +
+
+      // المستندات المرفقة
+      (c.docs && c.docs.length ? (
+        '<div style="margin-top:16px">' +
+          '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">📎 المستندات المرفقة</div>' +
+          c.docs.map(function(doc) {
+            var docName = typeof doc === 'string' ? doc : (doc.name || doc);
+            var docUrl  = typeof doc === 'object' ? (doc.url || doc.dataUrl || '') : '';
+            return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border3)">' +
+              '<span style="font-size:14px">📄</span>' +
+              '<span style="font-size:12px;color:var(--text);flex:1">' + docName + '</span>' +
+              (docUrl ? '<a href="' + docUrl + '" target="_blank" style="font-size:10px;color:var(--primary)">عرض</a>' : '') +
+            '</div>';
+          }).join('') +
+        '</div>'
+      ) : '') +
 
       // تنبيه التأخر
       (function() {
@@ -7941,8 +7965,16 @@ async function openComplaint(id) {
             '<div style="font-size:13px;font-weight:600;color:var(--text)">' + (c.name || '—') + '</div>' +
           '</div>' +
           '<div>' +
+            '<div style="font-size:10px;color:var(--text3);margin-bottom:2px">الرقم القومي</div>' +
+            '<div style="font-size:13px;font-weight:600;color:var(--text);direction:ltr;text-align:right">' + (c.nid || '—') + '</div>' +
+          '</div>' +
+          '<div>' +
             '<div style="font-size:10px;color:var(--text3);margin-bottom:2px">رقم الهاتف</div>' +
             '<div style="font-size:13px;font-weight:600;color:var(--text);direction:ltr;text-align:right">' + (c.phone || '—') + '</div>' +
+          '</div>' +
+          '<div style="grid-column:1/-1">' +
+            '<div style="font-size:10px;color:var(--text3);margin-bottom:2px">العنوان</div>' +
+            '<div style="font-size:12px;color:var(--text)">' + (c.address || '—') + '</div>' +
           '</div>' +
           '<div>' +
             '<div style="font-size:10px;color:var(--text3);margin-bottom:2px">تاريخ التقديم</div>' +
@@ -7965,6 +7997,22 @@ async function openComplaint(id) {
 
       '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">سجل الأحداث</div>' +
       '<div class="complaint-steps">' + stepsHTML + '</div>' +
+
+      // المستندات المرفقة
+      (c.docs && c.docs.length ? (
+        '<div style="margin-top:16px">' +
+          '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">📎 المستندات المرفقة</div>' +
+          c.docs.map(function(doc) {
+            var docName = typeof doc === 'string' ? doc : (doc.name || doc);
+            var docUrl  = typeof doc === 'object' ? (doc.url || doc.dataUrl || '') : '';
+            return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border3)">' +
+              '<span style="font-size:14px">📄</span>' +
+              '<span style="font-size:12px;color:var(--text);flex:1">' + docName + '</span>' +
+              (docUrl ? '<a href="' + docUrl + '" target="_blank" style="font-size:10px;color:var(--primary)">عرض</a>' : '') +
+            '</div>';
+          }).join('') +
+        '</div>'
+      ) : '') +
 
       // تنبيه التأخر
       (function() {
