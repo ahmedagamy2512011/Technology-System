@@ -3757,7 +3757,47 @@ function openNewComplaintModal() {
   });
   document.getElementById('nc-type').value = '';
   document.getElementById('nc-msg').style.display = 'none';
+  window._ncDocsData = new Array(6).fill(null);
+  initNCDocSlots();
   document.getElementById('new-complaint-modal').style.display = 'flex';
+}
+
+function initNCDocSlots() {
+  var container = document.getElementById('nc-docs-slots');
+  if (!container) return;
+  var labels = ['بطاقة الرقم القومي','مستند 1','مستند 2','مستند 3','مستند 4','مستند 5'];
+  container.innerHTML = labels.map(function(label, i) {
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:0.5px solid var(--border)">' +
+      '<span style="font-size:14px">📄</span>' +
+      '<span style="flex:1;font-size:12px;color:var(--text)">' + label + '</span>' +
+      '<span id="ncdoc-name-' + i + '" style="font-size:10px;color:var(--primary);display:none;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>' +
+      '<input type="file" id="ncdoc-input-' + i + '" accept="image/*,application/pdf" style="display:none" onchange="handleNCSlot(' + i + ',event)">' +
+      '<button onclick="triggerNCDocInput(' + i + ')" style="background:var(--primary);color:white;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-family:Cairo,sans-serif;cursor:pointer">رفع</button>' +
+      '<button id="ncdoc-del-' + i + '" onclick="deleteNCDoc(' + i + ')" style="display:none;background:#fdecea;color:#c0392b;border:none;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">🗑</button>' +
+    '</div>';
+  }).join('');
+}
+
+function triggerNCDocInput(idx) { document.getElementById("ncdoc-input-" + idx).click(); }
+
+function handleNCSlot(idx, event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    window._ncDocsData[idx] = { name: file.name, mimeType: file.type || 'application/octet-stream' };
+    document.getElementById('ncdoc-name-' + idx).textContent = file.name;
+    document.getElementById('ncdoc-name-' + idx).style.display = 'inline';
+    document.getElementById('ncdoc-del-' + idx).style.display = 'inline';
+  };
+  reader.readAsDataURL(file);
+}
+
+function deleteNCDoc(idx) {
+  window._ncDocsData[idx] = null;
+  document.getElementById('ncdoc-name-' + idx).style.display = 'none';
+  document.getElementById('ncdoc-del-' + idx).style.display = 'none';
+  document.getElementById('ncdoc-input-' + idx).value = '';
 }
 
 async function saveNewComplaint() {
@@ -3797,7 +3837,10 @@ async function saveNewComplaint() {
       t:    { stringValue: now.toISOString() },
       by:   { stringValue: currentEmployee || 'الشباك الأمامي' },
       note: { stringValue: 'تم التسجيل من المنظومة' }
-    }}}]}}
+    }}}]}},
+    docs: { arrayValue: { values: (window._ncDocsData || []).filter(function(d){ return d !== null; }).map(function(d) {
+      return { mapValue: { fields: { name: { stringValue: d.name }, mimeType: { stringValue: d.mimeType } }}};
+    })}}
   }};
 
   showNcMsg('#eef1f9','#1a3a6b','جارٍ الحفظ...');
@@ -7221,6 +7264,12 @@ function exportTable() {
         <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">نص الشكوى <span style="color:var(--danger)">*</span></label>
         <textarea id="nc-text" rows="4" placeholder="اكتب الشكوى بالتفصيل..." style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;resize:vertical;box-sizing:border-box"></textarea>
       </div>
+      <!-- مستندات الشكوى — 6 slots -->
+      <div style="margin-bottom:16px">
+        <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:8px">📎 إرفاق مستندات (اختياري)</label>
+        <div id="nc-docs-slots"></div>
+      </div>
+
       <div id="nc-msg" style="display:none;padding:8px;border-radius:8px;font-size:12px;margin-bottom:10px;text-align:center"></div>
       <button onclick="saveNewComplaint()" style="width:100%;padding:11px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:Cairo,sans-serif;cursor:pointer">حفظ الشكوى ✓</button>
     </div>
@@ -7915,6 +7964,12 @@ function sendTelegramMsg(chatId, text) {
         <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">نص الشكوى <span style="color:var(--danger)">*</span></label>
         <textarea id="nc-text" rows="4" placeholder="اكتب الشكوى بالتفصيل..." style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;resize:vertical;box-sizing:border-box"></textarea>
       </div>
+      <!-- مستندات الشكوى — 6 slots -->
+      <div style="margin-bottom:16px">
+        <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:8px">📎 إرفاق مستندات (اختياري)</label>
+        <div id="nc-docs-slots"></div>
+      </div>
+
       <div id="nc-msg" style="display:none;padding:8px;border-radius:8px;font-size:12px;margin-bottom:10px;text-align:center"></div>
       <button onclick="saveNewComplaint()" style="width:100%;padding:11px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:Cairo,sans-serif;cursor:pointer">حفظ الشكوى ✓</button>
     </div>
