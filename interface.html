@@ -3757,6 +3757,7 @@ function openNewComplaintModal() {
   });
   document.getElementById('nc-type').value = '';
   document.getElementById('nc-msg').style.display = 'none';
+  var ncTg = document.getElementById('nc-telegram'); if (ncTg) ncTg.value = '';
   var ncOcrStatus = document.getElementById('nc-ocr-status');
   if (ncOcrStatus) ncOcrStatus.textContent = '';
   var ncIdFile = document.getElementById('nc-id-file');
@@ -3861,7 +3862,7 @@ async function saveNewComplaint() {
     nid:          { stringValue: nid },
     phone:        { stringValue: phone },
     address:      { stringValue: addr },
-    telegramChatId: { stringValue: '' },
+    telegramChatId: { stringValue: (document.getElementById('nc-telegram') ? document.getElementById('nc-telegram').value.trim() : '') },
     type:         { stringValue: type },
     text:         { stringValue: text },
     status:       { stringValue: 'new' },
@@ -7294,6 +7295,18 @@ function exportTable() {
         </div>
       </div>
       <div style="margin-bottom:12px">
+        <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">
+          معرّف تليجرام
+          <span style="font-weight:400;color:var(--text3)">(اختياري) — للإشعارات الفورية</span>
+        </label>
+        <input type="text" id="nc-telegram" placeholder="مثال: 92771786" dir="ltr"
+          style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;box-sizing:border-box">
+        <div style="font-size:10px;color:var(--text3);margin-top:4px">
+          📱 المواطن يحصل عليه بإرسال /start للبوت:
+          <b>@smarttechcenter_bot</b>
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
         <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">العنوان</label>
         <input type="text" id="nc-address" placeholder="المحافظة / المركز / الشارع" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;box-sizing:border-box">
       </div>
@@ -8004,6 +8017,18 @@ function sendTelegramMsg(chatId, text) {
         <div>
           <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">رقم الهاتف <span style="color:var(--danger)">*</span></label>
           <input type="text" id="nc-phone" placeholder="01XXXXXXXXX" dir="ltr" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;box-sizing:border-box">
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">
+          معرّف تليجرام
+          <span style="font-weight:400;color:var(--text3)">(اختياري) — للإشعارات الفورية</span>
+        </label>
+        <input type="text" id="nc-telegram" placeholder="مثال: 92771786" dir="ltr"
+          style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;box-sizing:border-box">
+        <div style="font-size:10px;color:var(--text3);margin-top:4px">
+          📱 المواطن يحصل عليه بإرسال /start للبوت:
+          <b>@smarttechcenter_bot</b>
         </div>
       </div>
       <div style="margin-bottom:12px">
