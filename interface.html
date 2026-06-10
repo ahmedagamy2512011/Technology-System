@@ -3757,6 +3757,10 @@ function openNewComplaintModal() {
   });
   document.getElementById('nc-type').value = '';
   document.getElementById('nc-msg').style.display = 'none';
+  var ncOcrStatus = document.getElementById('nc-ocr-status');
+  if (ncOcrStatus) ncOcrStatus.textContent = '';
+  var ncIdFile = document.getElementById('nc-id-file');
+  if (ncIdFile) ncIdFile.value = '';
   window._ncDocsData = new Array(6).fill(null);
   initNCDocSlots();
   document.getElementById('new-complaint-modal').style.display = 'flex';
@@ -3776,6 +3780,39 @@ function initNCDocSlots() {
       '<button id="ncdoc-del-' + i + '" onclick="deleteNCDoc(' + i + ')" style="display:none;background:#fdecea;color:#c0392b;border:none;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">🗑</button>' +
     '</div>';
   }).join('');
+}
+
+
+async function handleNCIdOCR(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var statusEl = document.getElementById('nc-ocr-status');
+  statusEl.textContent = '⏳ جارٍ قراءة البطاقة...';
+  try {
+    var reader = new FileReader();
+    reader.onload = async function(e) {
+      var base64 = e.target.result.split(',')[1];
+      var mimeType = file.type || 'image/jpeg';
+      var prompt = 'استخرج من بطاقة الرقم القومي المصرية: الاسم الرباعي بالعربية، رقم البطاقة (14 رقم)، العنوان. أجب هكذا فقط: الاسم: [الاسم] | الرقم: [الرقم] | العنوان: [العنوان]';
+      var res = await fetch('https://divine-math-c16d.ahmedagamy939.workers.dev/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: prompt, imageBase64: base64, mimeType: mimeType })
+      });
+      var data = await res.json();
+      var text = data.text || '';
+      var nameMatch    = text.match(/الاسم[:\s]+([^|\n]+)/);
+      var nidMatch     = text.match(/الرقم[:\s]+([\d]{14})/);
+      var addressMatch = text.match(/العنوان[:\s]+([^|\n]+)/);
+      if (nameMatch)    document.getElementById('nc-name').value    = nameMatch[1].trim();
+      if (nidMatch)     document.getElementById('nc-nid').value     = nidMatch[1].trim();
+      if (addressMatch) document.getElementById('nc-address').value = addressMatch[1].trim();
+      statusEl.textContent = nameMatch ? '✅ تم استخراج البيانات' : '⚠️ تعذرت القراءة — أدخل يدوياً';
+    };
+    reader.readAsDataURL(file);
+  } catch(err) {
+    statusEl.textContent = '⚠️ خطأ في الاتصال';
+  }
 }
 
 function triggerNCDocInput(idx) { document.getElementById("ncdoc-input-" + idx).click(); }
@@ -7229,6 +7266,19 @@ function exportTable() {
       <button onclick="document.getElementById('new-complaint-modal').style.display='none'" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text3)">✕</button>
     </div>
     <div style="padding:16px 20px">
+      <!-- صورة البطاقة + OCR -->
+      <div style="margin-bottom:14px;border:1.5px dashed var(--border2);border-radius:10px;padding:10px;background:var(--bg)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:12px;font-weight:600;color:var(--text)">🪪 بطاقة الرقم القومي</span>
+          <span style="font-size:11px;color:var(--text3)">— ارفع صورة البطاقة لقراءة البيانات تلقائياً</span>
+        </div>
+        <input type="file" id="nc-id-file" accept="image/*" style="display:none" onchange="handleNCIdOCR(event)">
+        <button onclick="document.getElementById('nc-id-file').click()" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:12px;font-family:Cairo,sans-serif;cursor:pointer;color:var(--text2)">
+          📁 رفع صورة البطاقة (اسكانر)
+        </button>
+        <span id="nc-ocr-status" style="font-size:11px;color:var(--text3);margin-right:8px"></span>
+      </div>
+
       <div style="margin-bottom:12px">
         <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">اسم المواطن <span style="color:var(--danger)">*</span></label>
         <input type="text" id="nc-name" placeholder="الاسم الرباعي" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;box-sizing:border-box">
@@ -7929,6 +7979,19 @@ function sendTelegramMsg(chatId, text) {
       <button onclick="document.getElementById('new-complaint-modal').style.display='none'" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text3)">✕</button>
     </div>
     <div style="padding:16px 20px">
+      <!-- صورة البطاقة + OCR -->
+      <div style="margin-bottom:14px;border:1.5px dashed var(--border2);border-radius:10px;padding:10px;background:var(--bg)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:12px;font-weight:600;color:var(--text)">🪪 بطاقة الرقم القومي</span>
+          <span style="font-size:11px;color:var(--text3)">— ارفع صورة البطاقة لقراءة البيانات تلقائياً</span>
+        </div>
+        <input type="file" id="nc-id-file" accept="image/*" style="display:none" onchange="handleNCIdOCR(event)">
+        <button onclick="document.getElementById('nc-id-file').click()" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:12px;font-family:Cairo,sans-serif;cursor:pointer;color:var(--text2)">
+          📁 رفع صورة البطاقة (اسكانر)
+        </button>
+        <span id="nc-ocr-status" style="font-size:11px;color:var(--text3);margin-right:8px"></span>
+      </div>
+
       <div style="margin-bottom:12px">
         <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">اسم المواطن <span style="color:var(--danger)">*</span></label>
         <input type="text" id="nc-name" placeholder="الاسم الرباعي" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;font-size:13px;box-sizing:border-box">
