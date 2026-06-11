@@ -1630,7 +1630,8 @@ async function submitComplaint() {
     docs: { arrayValue: { values: (window._complaintDocsData || []).filter(function(d){ return d !== null; }).map(function(d) { return {
       mapValue: { fields: {
         name:     { stringValue: d.name },
-        mimeType: { stringValue: d.mimeType }
+        url:      { stringValue: d.url || '' },
+        mimeType: { stringValue: d.mimeType || '' }
       }}
     };})}}
   }};
