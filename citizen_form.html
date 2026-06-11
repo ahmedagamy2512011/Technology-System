@@ -718,9 +718,36 @@
       <div class="card-title">🔍 متابعة الشكوى</div>
       <div class="field" style="display:flex;gap:8px">
         <input type="text" id="c-track-id" placeholder="CMP-2026-XXXX" dir="ltr" style="flex:1">
-        <button onclick="trackComplaint()" class="btn-primary" style="width:auto;padding:12px 20px;margin-top:0">بحث</button>
+        <button onclick="trackComplaint()" class="btn-primary" style="width:auto;padding:12px 20px;margin-top:0">بحث 🔍</button>
       </div>
-      <div id="complaint-track-result" style="margin-top:12px"></div>
+    </div>
+
+    <div id="complaint-result" style="display:none">
+
+      <!-- بيانات الشكوى -->
+      <div class="card">
+        <div class="card-title">📣 بيانات الشكوى</div>
+        <div id="complaint-info"></div>
+      </div>
+
+      <!-- مسار الشكوى -->
+      <div class="card">
+        <div class="card-title">📍 مسار الشكوى</div>
+        <div class="timeline" id="complaint-timeline"></div>
+      </div>
+
+      <!-- المستندات -->
+      <div class="card" id="complaint-docs-section">
+        <div class="card-title">📎 المستندات</div>
+        <div id="complaint-docs-display"></div>
+        <!-- إضافة مستندات لاحقاً -->
+        <div style="margin-top:12px;border-top:1px dashed var(--border);padding-top:12px">
+          <div style="font-size:13px;font-weight:600;color:var(--dark);margin-bottom:8px">📎 إضافة مستندات لاحقاً</div>
+          <div id="extra-docs-container"></div>
+          <button onclick="addExtraDocSlot()" style="background:var(--green-pale);color:var(--green);border:1px solid var(--green-light);border-radius:8px;padding:8px 16px;font-size:12px;cursor:pointer;font-family:Cairo,sans-serif;width:100%;margin-top:6px">+ إضافة مستند</button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1521,7 +1548,8 @@ window._complaintDocsData = new Array(6).fill(null);
 
 function initComplaintDocSlots() {
   const container = document.getElementById('complaint-docs-slots');
-  if (!container || container.children.length > 0) return;
+  if (!container) return;
+  container.innerHTML = ''; // reset دايماً
   container.innerHTML = COMPLAINT_DOC_LABELS.map((label, i) =>
     '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:0.5px solid var(--border)">' +
       '<span style="font-size:15px">📄</span>' +
@@ -1685,6 +1713,20 @@ async function submitComplaint() {
 // إضافة مستندات لاحقاً على الشكوى
 var _extraDocUrl = null;
 
+function addExtraDocSlot() {
+  const container = document.getElementById('extra-docs-container');
+  if (!container) return;
+  const slotId = 'extra-' + Date.now();
+  const slot = document.createElement('div');
+  slot.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)';
+  slot.innerHTML =
+    '<span>📄</span>' +
+    '<span id="' + slotId + '-name" style="flex:1;font-size:12px;color:var(--gray)">اختر ملف...</span>' +
+    '<input type="file" id="' + slotId + '-file" accept="image/*,application/pdf" style="display:none" onchange="uploadExtraDoc(\'' + slotId + '\')">' +
+    '<button onclick="document.getElementById(\'' + slotId + '-file\').click()" style="background:var(--green);color:white;border:none;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer">رفع</button>';
+  container.appendChild(slot);
+}
+
 async function initExtraDocSlots(complaintId) {
   const container = document.getElementById('extra-docs-slots-' + complaintId);
   if (!container) return;
@@ -1699,7 +1741,8 @@ async function initExtraDocSlots(complaintId) {
   container.appendChild(slot);
 }
 
-async function uploadExtraDoc(complaintId, slotId) {
+async function uploadExtraDoc(slotId) {
+  const complaintId = _currentTrackingId;
   const file = document.getElementById(slotId + '-file').files[0];
   if (!file) return;
   const nameEl = document.getElementById(slotId + '-name');
@@ -1736,11 +1779,13 @@ async function uploadExtraDoc(complaintId, slotId) {
   }
 }
 
+var _currentTrackingId = null;
+
 async function trackComplaint() {
   const id = (document.getElementById('c-track-id').value || '').trim().toUpperCase();
-  const result = document.getElementById('complaint-track-result');
   if (!id) return;
-  result.innerHTML = '<div style="text-align:center;color:var(--gray);padding:20px">جارٍ البحث...</div>';
+  _currentTrackingId = id;
+  document.getElementById('complaint-result').style.display = 'none';
   try {
     const res = await fetch(FB_BASE_C + '/complaints/' + id);
     const data = await res.json();
@@ -1756,52 +1801,66 @@ async function trackComplaint() {
       (s.note&&s.note.stringValue?'<div style="font-size:11px;color:var(--gray);margin-top:2px">'+s.note.stringValue+'</div>':'') +
       '<div style="font-size:10px;color:var(--gray);margin-top:2px">'+new Date(s.t.stringValue).toLocaleString('ar-EG')+'</div></div></div>'
     ).join('');
-    // بيانات المستندات المرفقة
+    // بيانات الشكوى
+    const statusClsMap = { new:'status-new', assigned:'status-review', resolved:'status-review', closed:'status-done' };
+    document.getElementById('complaint-info').innerHTML =
+      `<div class="info-row"><span>رقم الشكوى</span><span style="font-family:monospace;color:var(--green);font-size:15px">${id}</span></div>` +
+      `<div class="info-row"><span>نوع الشكوى</span><span>${f.type.stringValue}</span></div>` +
+      (f.name && f.name.stringValue ? `<div class="info-row"><span>الاسم</span><span>${f.name.stringValue}</span></div>` : '') +
+      (f.phone && f.phone.stringValue ? `<div class="info-row"><span>الهاتف</span><span dir="ltr">${f.phone.stringValue}</span></div>` : '') +
+      `<div class="info-row"><span>الحالة</span><span class="status-badge ${statusClsMap[status]||'status-new'}">${COMPLAINT_STATUS_LABEL[status]||status}</span></div>` +
+      `<div class="info-row"><span>تاريخ التقديم</span><span>${f.createdAt ? new Date(f.createdAt.stringValue).toLocaleDateString('ar-EG') : '—'}</span></div>`;
+
+    // مسار الشكوى — timeline
+    const COMPLAINT_STEPS_MAP = [
+      { s: 'new',      icon: '📥', label: 'تم استلام الشكوى' },
+      { s: 'assigned', icon: '📋', label: 'تم إحالتها للجهة المختصة' },
+      { s: 'resolved', icon: '✅', label: 'تمت المعالجة' },
+      { s: 'closed',   icon: '🔒', label: 'صدر القرار النهائي' }
+    ];
+    const doneStatuses = steps.map(s => s.s && s.s.stringValue).filter(Boolean);
+    const timelineHtml = COMPLAINT_STEPS_MAP.map(step => {
+      const isDone = doneStatuses.includes(step.s);
+      const isCurrent = step.s === status;
+      const cls = isDone ? 'done' : isCurrent ? 'current' : 'pending';
+      const matchedStep = steps.find(s => s.s && s.s.stringValue === step.s);
+      const note = matchedStep && matchedStep.note ? matchedStep.note.stringValue : '';
+      const desc = isDone ? '✅ تم' + (note ? ' — ' + note : '') : isCurrent ? '⏳ جارٍ الآن' : 'في الانتظار';
+      return `<div class="tl-item ${cls}"><div class="tl-title">${step.icon} ${step.label}</div><div class="tl-desc">${desc}</div></div>`;
+    }).join('');
+    document.getElementById('complaint-timeline').innerHTML = timelineHtml;
+
+    // المستندات
     const docsList = f.docs && f.docs.arrayValue && f.docs.arrayValue.values
       ? f.docs.arrayValue.values.map(v => ({
-          name: v.mapValue.fields.name ? v.mapValue.fields.name.stringValue : '—',
-          url:  v.mapValue.fields.url  ? v.mapValue.fields.url.stringValue  : ''
+          name:  v.mapValue.fields.name  ? v.mapValue.fields.name.stringValue  : '—',
+          url:   v.mapValue.fields.url   ? v.mapValue.fields.url.stringValue   : '',
+          label: v.mapValue.fields.label ? v.mapValue.fields.label.stringValue : ''
         }))
       : [];
 
-    const docsHTML = docsList.length
-      ? '<div class="card" style="margin-top:12px">' +
-          '<div style="font-size:13px;font-weight:700;margin-bottom:10px">📎 المستندات المرفقة</div>' +
-          docsList.map(d =>
-            '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">' +
-            '<span>📄</span>' +
-            '<span style="flex:1;font-size:13px">' + d.name + '</span>' +
-            (d.url ? '<a href="' + d.url + '" target="_blank" download style="background:var(--green);color:white;padding:4px 10px;border-radius:6px;font-size:11px;text-decoration:none">⬇ تحميل</a>' : '') +
-            (d.url ? '<a href="' + d.url + '" target="_blank" style="background:var(--green-pale);color:var(--green);padding:4px 10px;border-radius:6px;font-size:11px;text-decoration:none;border:1px solid var(--green-light)">👁 عرض</a>' : '') +
-            '</div>'
-          ).join('') +
-        '</div>'
-      : '';
+    function docRow(d) {
+      return `<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <span>📄</span>
+        <span style="flex:1;font-size:13px">${d.name}</span>
+        ${d.url ? `<a href="${d.url}" target="_blank" download style="background:var(--green);color:white;padding:5px 12px;border-radius:6px;font-size:12px;text-decoration:none">⬇ تحميل</a>` : ''}
+        ${d.url ? `<a href="${d.url}" target="_blank" style="background:var(--green-pale);color:var(--green);padding:5px 12px;border-radius:6px;font-size:12px;text-decoration:none;border:1px solid var(--green-light)">👁 عرض</a>` : ''}
+      </div>`;
+    }
 
-    // رفع مستندات إضافية
-    const addDocsHTML =
-      '<div class="card" style="margin-top:12px;border:1.5px dashed var(--border)">' +
-        '<div style="font-size:13px;font-weight:700;margin-bottom:10px">📎 إضافة مستندات لاحقاً</div>' +
-        '<div id="extra-docs-slots-' + id + '"></div>' +
-        '<button onclick="initExtraDocSlots(\'' + id + '\')" style="background:var(--green-pale);color:var(--green);border:1px solid var(--green-light);border-radius:8px;padding:8px 16px;font-size:12px;cursor:pointer;font-family:Cairo,sans-serif;width:100%;margin-top:8px">+ إضافة مستند</button>' +
-      '</div>';
+    const originalDocs = docsList.filter(d => d.label !== 'مستند مضاف لاحقاً');
+    const extraDocs    = docsList.filter(d => d.label === 'مستند مضاف لاحقاً');
+    let docsDisplayHtml = originalDocs.map(docRow).join('');
+    if (extraDocs.length) {
+      docsDisplayHtml += `<div style="margin-top:10px;padding:10px;background:#f0f7ff;border-radius:8px">
+        <div style="font-size:12px;font-weight:700;color:#1e40af;margin-bottom:6px">📎 مستندات مضافة لاحقاً</div>
+        ${extraDocs.map(docRow).join('')}
+      </div>`;
+    }
+    document.getElementById('complaint-docs-display').innerHTML = docsDisplayHtml || '<div style="color:var(--gray);font-size:13px;padding:10px 0">لا توجد مستندات مرفقة</div>';
+    document.getElementById('extra-docs-container').innerHTML = '';
 
-    result.innerHTML =
-      '<div class="card">' +
-        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">' +
-          '<span style="font-family:monospace;font-size:13px;font-weight:700;color:var(--green)">' + id + '</span>' +
-          '<span style="background:var(--green-pale);color:var(--green);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">' + (COMPLAINT_STATUS_LABEL[status]||status) + '</span>' +
-        '</div>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;font-size:12px">' +
-          '<div><span style="color:var(--gray)">النوع: </span><b>' + f.type.stringValue + '</b></div>' +
-          (f.name && f.name.stringValue ? '<div><span style="color:var(--gray)">الاسم: </span><b>' + f.name.stringValue + '</b></div>' : '') +
-        '</div>' +
-        '<div style="background:#f8f9fc;border-radius:8px;padding:10px;font-size:12px;margin-bottom:12px;line-height:1.7">' + f.text.stringValue + '</div>' +
-        '<div style="font-size:12px;font-weight:700;color:var(--dark);margin-bottom:8px">🗂️ مسار الشكوى</div>' +
-        stepsHTML +
-      '</div>' +
-      docsHTML +
-      addDocsHTML;
+    document.getElementById('complaint-result').style.display = 'block';
   } catch(e) { result.innerHTML = '<div style="text-align:center;color:var(--red);padding:20px;font-size:13px">خطأ في الاتصال</div>'; }
 }
 
