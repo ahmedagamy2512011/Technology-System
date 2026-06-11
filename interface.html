@@ -3889,6 +3889,18 @@ async function saveNewComplaint() {
     document.getElementById('new-complaint-modal').style.display = 'none';
     toast('success', 'تم التسجيل', 'رقم الشكوى: ' + id);
     buildComplaintsList();
+    // إشعار تليجرام للمواطن لو عنده chat_id
+    var tgId = document.getElementById('nc-telegram') ? document.getElementById('nc-telegram').value.trim() : '';
+    if (tgId) {
+      var typeLabel = type === 'مقترح' ? 'مقترحك' : 'شكواك';
+      sendTelegramMsg(tgId,
+        '✅ تم استلام ' + typeLabel + ' بنجاح\n\n' +
+        '🔢 رقم الشكوى: ' + id + '\n' +
+        '📌 النوع: ' + type + '\n\n' +
+        'سيتم مراجعتها وإحالتها للجهة المختصة.\n' +
+        'ستصلك إشعارات بكل تحديث.'
+      );
+    }
   } catch(e) {
     showNcMsg('#fdecea','#c0392b','⚠️ خطأ في الحفظ — حاول مرة أخرى');
   }
