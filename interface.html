@@ -3816,19 +3816,41 @@ async function handleNCIdOCR(event) {
   }
 }
 
+
+// ── Cloudinary Upload ─────────────────────────────────────────────────────
+var CLOUDINARY_CLOUD  = 'dq2ahuyvb';
+var CLOUDINARY_PRESET = 'wadi_docs';
+
+async function uploadToCloudinaryInterface(file, folder) {
+  var formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_PRESET);
+  formData.append('folder', folder || 'complaints');
+  var res = await fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/auto/upload', {
+    method: 'POST', body: formData
+  });
+  var data = await res.json();
+  if (data.secure_url) return data.secure_url;
+  throw new Error(data.error ? data.error.message : 'Upload failed');
+}
+
 function triggerNCDocInput(idx) { document.getElementById("ncdoc-input-" + idx).click(); }
 
-function handleNCSlot(idx, event) {
+async function handleNCSlot(idx, event) {
   var file = event.target.files[0];
   if (!file) return;
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    window._ncDocsData[idx] = { name: file.name, mimeType: file.type || 'application/octet-stream' };
-    document.getElementById('ncdoc-name-' + idx).textContent = file.name;
-    document.getElementById('ncdoc-name-' + idx).style.display = 'inline';
-    document.getElementById('ncdoc-del-' + idx).style.display = 'inline';
-  };
-  reader.readAsDataURL(file);
+  var nameEl = document.getElementById('ncdoc-name-' + idx);
+  var delEl  = document.getElementById('ncdoc-del-' + idx);
+  nameEl.textContent = '⏳ جارٍ الرفع...';
+  nameEl.style.display = 'inline';
+  try {
+    var url = await uploadToCloudinaryInterface(file, 'complaints');
+    window._ncDocsData[idx] = { name: file.name, url: url, mimeType: file.type || '' };
+    nameEl.textContent = file.name;
+    delEl.style.display = 'inline';
+  } catch(e) {
+    nameEl.textContent = '❌ فشل الرفع';
+  }
 }
 
 function deleteNCDoc(idx) {
@@ -3877,7 +3899,11 @@ async function saveNewComplaint() {
       note: { stringValue: 'تم التسجيل من المنظومة' }
     }}}]}},
     docs: { arrayValue: { values: (window._ncDocsData || []).filter(function(d){ return d !== null; }).map(function(d) {
-      return { mapValue: { fields: { name: { stringValue: d.name }, mimeType: { stringValue: d.mimeType } }}};
+      return { mapValue: { fields: {
+        name:     { stringValue: d.name },
+        url:      { stringValue: d.url || '' },
+        mimeType: { stringValue: d.mimeType || '' }
+      }}};
     })}}
   }};
 
@@ -7689,21 +7715,42 @@ async function openComplaint(id) {
       '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">سجل الأحداث</div>' +
       '<div class="complaint-steps">' + stepsHTML + '</div>' +
 
-      // المستندات المرفقة
+      // المستندات المرفقة مع الشكوى
       (c.docs && c.docs.length ? (
-        '<div style="margin-top:16px">' +
+        '<div style="margin-top:16px;padding:12px;background:var(--surface);border:0.5px solid var(--border);border-radius:10px">' +
           '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">📎 المستندات المرفقة</div>' +
           c.docs.map(function(doc) {
-            var docName = typeof doc === 'string' ? doc : (doc.name || doc);
-            var docUrl  = typeof doc === 'object' ? (doc.url || doc.dataUrl || '') : '';
+            var docName = typeof doc === 'object' ? (doc.name || '—') : doc;
+            var docUrl  = typeof doc === 'object' ? (doc.url || '') : '';
             return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border3)">' +
               '<span style="font-size:14px">📄</span>' +
               '<span style="font-size:12px;color:var(--text);flex:1">' + docName + '</span>' +
-              (docUrl ? '<a href="' + docUrl + '" target="_blank" style="font-size:10px;color:var(--primary)">عرض</a>' : '') +
+              (docUrl ? '<a href="' + docUrl + '" target="_blank" download style="background:var(--primary);color:white;border-radius:6px;padding:3px 8px;font-size:10px;text-decoration:none;margin-left:4px">⬇ تحميل</a>' : '') +
+              (docUrl ? '<a href="' + docUrl + '" target="_blank" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:10px;text-decoration:none">👁 عرض</a>' : '') +
             '</div>';
           }).join('') +
         '</div>'
       ) : '') +
+
+      // مستندات سجل الأحداث (من المعالجة والقرار)
+      (function() {
+        var stepDocs = (c.steps || []).filter(function(s) {
+          return s && typeof s === 'object' && s.docUrl;
+        });
+        if (!stepDocs.length) return '';
+        return '<div style="margin-top:12px;padding:12px;background:var(--surface);border:0.5px solid var(--border);border-radius:10px">' +
+          '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">📎 مستندات المعالجة والقرار</div>' +
+          stepDocs.map(function(s) {
+            var label = s.s === 'resolved' ? 'مستند المعالجة' : s.s === 'closed' ? 'مستند القرار النهائي' : 'مستند';
+            return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border3)">' +
+              '<span style="font-size:14px">📄</span>' +
+              '<span style="font-size:12px;color:var(--text);flex:1">' + label + '</span>' +
+              '<a href="' + s.docUrl + '" target="_blank" download style="background:var(--primary);color:white;border-radius:6px;padding:3px 8px;font-size:10px;text-decoration:none;margin-left:4px">⬇ تحميل</a>' +
+              '<a href="' + s.docUrl + '" target="_blank" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:10px;text-decoration:none">👁 عرض</a>' +
+            '</div>';
+          }).join('') +
+        '</div>';
+      })() +
 
       // تنبيه التأخر
       (function() {
@@ -7742,6 +7789,11 @@ async function openComplaint(id) {
         '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
           '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">✅ تسجيل المعالجة</div>' +
           '<textarea id="resolve-note" placeholder="ملاحظات المعالجة..." rows="3" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px;resize:vertical;box-sizing:border-box"></textarea>' +
+          '<div style="margin-bottom:8px">' +
+            '<input type="file" id="resolve-doc-file" accept="image/*,application/pdf" style="display:none" onchange="handleResolveDoc(event)">' +
+            '<button onclick="triggerResolveDoc()" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:Cairo,sans-serif;width:100%">📎 إرفاق مستند مع المعالجة (اختياري)</button>' +
+            '<span id="resolve-doc-name" style="font-size:10px;color:var(--primary);display:block;margin-top:3px"></span>' +
+          '</div>' +
           '<button class="btn btn-primary btn-sm" onclick="resolveComplaint(\'' + c.id + '\')" style="width:100%">تم المعالجة ✓</button>' +
         '</div>'
       ) : '') +
@@ -7750,6 +7802,11 @@ async function openComplaint(id) {
         '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
           '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">🔒 القرار النهائي (رئيس المركز)</div>' +
           '<textarea id="close-note" placeholder="القرار النهائي في الشكوى..." rows="3" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px;resize:vertical;box-sizing:border-box"></textarea>' +
+          '<div style="margin-bottom:8px">' +
+            '<input type="file" id="close-doc-file" accept="image/*,application/pdf" style="display:none" onchange="handleCloseDoc(event)">' +
+            '<button onclick="triggerCloseDoc()" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:Cairo,sans-serif;width:100%">📎 إرفاق مستند مع القرار (اختياري)</button>' +
+            '<span id="close-doc-name" style="font-size:10px;color:var(--primary);display:block;margin-top:3px"></span>' +
+          '</div>' +
           '<button class="btn btn-primary btn-sm" onclick="closeComplaint(\'' + c.id + '\')" style="width:100%">إغلاق الشكوى ✓</button>' +
         '</div>'
       ) : '') +
@@ -7862,6 +7919,35 @@ async function reassignComplaint(id) {
   openComplaint(id);
 }
 
+
+function triggerResolveDoc() { document.getElementById("resolve-doc-file").click(); }
+function triggerCloseDoc()   { document.getElementById("close-doc-file").click();   }
+
+var _resolveDocUrl = null;
+var _closeDocUrl   = null;
+
+async function handleResolveDoc(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var nameEl = document.getElementById('resolve-doc-name');
+  nameEl.textContent = '⏳ جارٍ الرفع...';
+  try {
+    _resolveDocUrl = await uploadToCloudinaryInterface(file, 'complaints/resolution');
+    nameEl.textContent = '✅ ' + file.name;
+  } catch(e) { nameEl.textContent = '❌ فشل الرفع'; }
+}
+
+async function handleCloseDoc(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var nameEl = document.getElementById('close-doc-name');
+  nameEl.textContent = '⏳ جارٍ الرفع...';
+  try {
+    _closeDocUrl = await uploadToCloudinaryInterface(file, 'complaints/decisions');
+    nameEl.textContent = '✅ ' + file.name;
+  } catch(e) { nameEl.textContent = '❌ فشل الرفع'; }
+}
+
 // إحالة الشكوى
 async function assignComplaint(id) {
   var dept = document.getElementById('assign-dept-select').value;
@@ -7892,7 +7978,8 @@ async function resolveComplaint(id) {
   var note = (document.getElementById('resolve-note').value || '').trim();
   if (!note) { toast('warn','تنبيه','أدخل ملاحظات المعالجة'); return; }
 
-  await updateComplaintStatus(id, 'resolved', { stepNote: note });
+  await updateComplaintStatus(id, 'resolved', { stepNote: note, docUrl: _resolveDocUrl });
+  _resolveDocUrl = null;
   toast('success','تمت المعالجة','انتظر القرار النهائي من رئيس المركز');
 
   var all = await loadComplaints();
@@ -7913,7 +8000,8 @@ async function closeComplaint(id) {
   var note = (document.getElementById('close-note').value || '').trim();
   if (!note) { toast('warn','تنبيه','أدخل القرار النهائي'); return; }
 
-  await updateComplaintStatus(id, 'closed', { stepNote: note });
+  await updateComplaintStatus(id, 'closed', { stepNote: note, docUrl: _closeDocUrl });
+  _closeDocUrl = null;
   toast('success','تم الإغلاق','تم إغلاق الشكوى بالقرار النهائي');
 
   var all = await loadComplaints();
@@ -7958,10 +8046,11 @@ async function updateComplaintStatus(id, newStatus, extra) {
     // استخدم currentEmployee كاسم المنفذ — يعكس الدور المختار فعلاً
     var byName = currentEmployee || (CURRENT_USER ? CURRENT_USER.name : 'النظام');
     var newStep = { mapValue: { fields: {
-      s:    { stringValue: newStatus },
-      t:    { stringValue: now },
-      by:   { stringValue: byName + ' | ' + nowStr },
-      note: { stringValue: extra.stepNote || '' }
+      s:      { stringValue: newStatus },
+      t:      { stringValue: now },
+      by:     { stringValue: byName + ' | ' + nowStr },
+      note:   { stringValue: extra.stepNote || '' },
+      docUrl: { stringValue: extra.docUrl || '' }
     }}};
 
     var updatedFields = Object.assign({}, current.fields);
@@ -8414,21 +8503,42 @@ async function openComplaint(id) {
       '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">سجل الأحداث</div>' +
       '<div class="complaint-steps">' + stepsHTML + '</div>' +
 
-      // المستندات المرفقة
+      // المستندات المرفقة مع الشكوى
       (c.docs && c.docs.length ? (
-        '<div style="margin-top:16px">' +
+        '<div style="margin-top:16px;padding:12px;background:var(--surface);border:0.5px solid var(--border);border-radius:10px">' +
           '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">📎 المستندات المرفقة</div>' +
           c.docs.map(function(doc) {
-            var docName = typeof doc === 'string' ? doc : (doc.name || doc);
-            var docUrl  = typeof doc === 'object' ? (doc.url || doc.dataUrl || '') : '';
+            var docName = typeof doc === 'object' ? (doc.name || '—') : doc;
+            var docUrl  = typeof doc === 'object' ? (doc.url || '') : '';
             return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border3)">' +
               '<span style="font-size:14px">📄</span>' +
               '<span style="font-size:12px;color:var(--text);flex:1">' + docName + '</span>' +
-              (docUrl ? '<a href="' + docUrl + '" target="_blank" style="font-size:10px;color:var(--primary)">عرض</a>' : '') +
+              (docUrl ? '<a href="' + docUrl + '" target="_blank" download style="background:var(--primary);color:white;border-radius:6px;padding:3px 8px;font-size:10px;text-decoration:none;margin-left:4px">⬇ تحميل</a>' : '') +
+              (docUrl ? '<a href="' + docUrl + '" target="_blank" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:10px;text-decoration:none">👁 عرض</a>' : '') +
             '</div>';
           }).join('') +
         '</div>'
       ) : '') +
+
+      // مستندات سجل الأحداث (من المعالجة والقرار)
+      (function() {
+        var stepDocs = (c.steps || []).filter(function(s) {
+          return s && typeof s === 'object' && s.docUrl;
+        });
+        if (!stepDocs.length) return '';
+        return '<div style="margin-top:12px;padding:12px;background:var(--surface);border:0.5px solid var(--border);border-radius:10px">' +
+          '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">📎 مستندات المعالجة والقرار</div>' +
+          stepDocs.map(function(s) {
+            var label = s.s === 'resolved' ? 'مستند المعالجة' : s.s === 'closed' ? 'مستند القرار النهائي' : 'مستند';
+            return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border3)">' +
+              '<span style="font-size:14px">📄</span>' +
+              '<span style="font-size:12px;color:var(--text);flex:1">' + label + '</span>' +
+              '<a href="' + s.docUrl + '" target="_blank" download style="background:var(--primary);color:white;border-radius:6px;padding:3px 8px;font-size:10px;text-decoration:none;margin-left:4px">⬇ تحميل</a>' +
+              '<a href="' + s.docUrl + '" target="_blank" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:10px;text-decoration:none">👁 عرض</a>' +
+            '</div>';
+          }).join('') +
+        '</div>';
+      })() +
 
       // تنبيه التأخر
       (function() {
@@ -8467,6 +8577,11 @@ async function openComplaint(id) {
         '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
           '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">✅ تسجيل المعالجة</div>' +
           '<textarea id="resolve-note" placeholder="ملاحظات المعالجة..." rows="3" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px;resize:vertical;box-sizing:border-box"></textarea>' +
+          '<div style="margin-bottom:8px">' +
+            '<input type="file" id="resolve-doc-file" accept="image/*,application/pdf" style="display:none" onchange="handleResolveDoc(event)">' +
+            '<button onclick="triggerResolveDoc()" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:Cairo,sans-serif;width:100%">📎 إرفاق مستند مع المعالجة (اختياري)</button>' +
+            '<span id="resolve-doc-name" style="font-size:10px;color:var(--primary);display:block;margin-top:3px"></span>' +
+          '</div>' +
           '<button class="btn btn-primary btn-sm" onclick="resolveComplaint(\'' + c.id + '\')" style="width:100%">تم المعالجة ✓</button>' +
         '</div>'
       ) : '') +
@@ -8475,6 +8590,11 @@ async function openComplaint(id) {
         '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
           '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">🔒 القرار النهائي (رئيس المركز)</div>' +
           '<textarea id="close-note" placeholder="القرار النهائي في الشكوى..." rows="3" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px;resize:vertical;box-sizing:border-box"></textarea>' +
+          '<div style="margin-bottom:8px">' +
+            '<input type="file" id="close-doc-file" accept="image/*,application/pdf" style="display:none" onchange="handleCloseDoc(event)">' +
+            '<button onclick="triggerCloseDoc()" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:Cairo,sans-serif;width:100%">📎 إرفاق مستند مع القرار (اختياري)</button>' +
+            '<span id="close-doc-name" style="font-size:10px;color:var(--primary);display:block;margin-top:3px"></span>' +
+          '</div>' +
           '<button class="btn btn-primary btn-sm" onclick="closeComplaint(\'' + c.id + '\')" style="width:100%">إغلاق الشكوى ✓</button>' +
         '</div>'
       ) : '') +
@@ -8587,6 +8707,35 @@ async function reassignComplaint(id) {
   openComplaint(id);
 }
 
+
+function triggerResolveDoc() { document.getElementById("resolve-doc-file").click(); }
+function triggerCloseDoc()   { document.getElementById("close-doc-file").click();   }
+
+var _resolveDocUrl = null;
+var _closeDocUrl   = null;
+
+async function handleResolveDoc(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var nameEl = document.getElementById('resolve-doc-name');
+  nameEl.textContent = '⏳ جارٍ الرفع...';
+  try {
+    _resolveDocUrl = await uploadToCloudinaryInterface(file, 'complaints/resolution');
+    nameEl.textContent = '✅ ' + file.name;
+  } catch(e) { nameEl.textContent = '❌ فشل الرفع'; }
+}
+
+async function handleCloseDoc(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var nameEl = document.getElementById('close-doc-name');
+  nameEl.textContent = '⏳ جارٍ الرفع...';
+  try {
+    _closeDocUrl = await uploadToCloudinaryInterface(file, 'complaints/decisions');
+    nameEl.textContent = '✅ ' + file.name;
+  } catch(e) { nameEl.textContent = '❌ فشل الرفع'; }
+}
+
 // إحالة الشكوى
 async function assignComplaint(id) {
   var dept = document.getElementById('assign-dept-select').value;
@@ -8617,7 +8766,8 @@ async function resolveComplaint(id) {
   var note = (document.getElementById('resolve-note').value || '').trim();
   if (!note) { toast('warn','تنبيه','أدخل ملاحظات المعالجة'); return; }
 
-  await updateComplaintStatus(id, 'resolved', { stepNote: note });
+  await updateComplaintStatus(id, 'resolved', { stepNote: note, docUrl: _resolveDocUrl });
+  _resolveDocUrl = null;
   toast('success','تمت المعالجة','انتظر القرار النهائي من رئيس المركز');
 
   var all = await loadComplaints();
@@ -8638,7 +8788,8 @@ async function closeComplaint(id) {
   var note = (document.getElementById('close-note').value || '').trim();
   if (!note) { toast('warn','تنبيه','أدخل القرار النهائي'); return; }
 
-  await updateComplaintStatus(id, 'closed', { stepNote: note });
+  await updateComplaintStatus(id, 'closed', { stepNote: note, docUrl: _closeDocUrl });
+  _closeDocUrl = null;
   toast('success','تم الإغلاق','تم إغلاق الشكوى بالقرار النهائي');
 
   var all = await loadComplaints();
@@ -8683,10 +8834,11 @@ async function updateComplaintStatus(id, newStatus, extra) {
     // استخدم currentEmployee كاسم المنفذ — يعكس الدور المختار فعلاً
     var byName = currentEmployee || (CURRENT_USER ? CURRENT_USER.name : 'النظام');
     var newStep = { mapValue: { fields: {
-      s:    { stringValue: newStatus },
-      t:    { stringValue: now },
-      by:   { stringValue: byName + ' | ' + nowStr },
-      note: { stringValue: extra.stepNote || '' }
+      s:      { stringValue: newStatus },
+      t:      { stringValue: now },
+      by:     { stringValue: byName + ' | ' + nowStr },
+      note:   { stringValue: extra.stepNote || '' },
+      docUrl: { stringValue: extra.docUrl || '' }
     }}};
 
     var updatedFields = Object.assign({}, current.fields);
