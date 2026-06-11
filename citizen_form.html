@@ -1537,19 +1537,24 @@ function initComplaintDocSlots() {
 
 function triggerDocInput(idx) { document.getElementById("cdoc-input-" + idx).click(); }
 
-function handleSlotUpload(idx, event) {
+async function handleSlotUpload(idx, event) {
   const file = event.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    window._complaintDocsData[idx] = { name: file.name, dataUrl: e.target.result, mimeType: file.type || 'application/octet-stream' };
-    document.getElementById('cdoc-name-' + idx).textContent = file.name;
-    document.getElementById('cdoc-name-' + idx).style.display = 'inline';
-    document.getElementById('cdoc-view-' + idx).href = e.target.result;
-    document.getElementById('cdoc-view-' + idx).style.display = 'inline';
-    document.getElementById('cdoc-del-' + idx).style.display = 'inline';
-  };
-  reader.readAsDataURL(file);
+  const nameEl = document.getElementById('cdoc-name-' + idx);
+  const viewEl = document.getElementById('cdoc-view-' + idx);
+  const delEl  = document.getElementById('cdoc-del-' + idx);
+  nameEl.textContent = '⏳ جارٍ الرفع...';
+  nameEl.style.display = 'inline';
+  try {
+    const url = await uploadToCloudinary(file, 'complaints');
+    window._complaintDocsData[idx] = { name: file.name, url: url, mimeType: file.type || '' };
+    nameEl.textContent = file.name;
+    viewEl.href = url;
+    viewEl.style.display = 'inline';
+    delEl.style.display  = 'inline';
+  } catch(e) {
+    nameEl.textContent = '❌ فشل الرفع — حاول مرة أخرى';
+  }
 }
 
 function deleteSlotDoc(idx) {
@@ -1644,6 +1649,20 @@ async function submitComplaint() {
     myC.unshift({ id, type, status: 'new', createdAt: now.toISOString() });
     localStorage.setItem('wadi_my_complaints', JSON.stringify(myC));
     showMsg('#e8f5ee','#1a6b3c','✅ تم إرسال شكواك — رقم الشكوى: ' + id);
+
+    // إشعار تليجرام لو في chat_id
+    if (chatId) {
+      const typeLabel = type === 'مقترح' ? 'مقترحك' : 'شكواك';
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: `✅ تم استلام ${typeLabel} بنجاح!\n\n🔢 رقم الشكوى: ${id}\n📌 النوع: ${type}\n\nسيتم مراجعتها وإحالتها للجهة المختصة.\nستصلك إشعارات بكل تحديث.`
+        })
+      }).catch(() => {});
+    }
+
     setTimeout(() => {
       document.getElementById('c-track-id').value = id;
       document.querySelectorAll('.tab')[3].click();
