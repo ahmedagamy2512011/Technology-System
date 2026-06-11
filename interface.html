@@ -1742,6 +1742,49 @@ body {
       <button class="btn btn-ghost btn-sm" onclick="buildManagerPage()">🔄 تحديث</button>
     </div>
     <div id="manager-content"></div>
+
+    <!-- ===== إدارة البيانات ===== -->
+    <div style="margin-top:28px">
+      <h3 style="font-size:15px;font-weight:700;color:var(--primary);margin-bottom:16px">🗄️ إدارة البيانات</h3>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+        <!-- الطلبات -->
+        <div class="card">
+          <div class="card-head"><h4>📋 الطلبات</h4></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
+            <button onclick="backupRequests()" class="btn btn-ghost btn-sm" style="justify-content:flex-start;gap:8px">
+              ⬇️ تحميل نسخة احتياطية
+            </button>
+            <label class="btn btn-ghost btn-sm" style="justify-content:flex-start;gap:8px;cursor:pointer">
+              ⬆️ استعادة من نسخة احتياطية
+              <input type="file" id="restore-requests-file" accept=".json" style="display:none" onchange="restoreRequests(event)">
+            </label>
+            <button onclick="deleteAllRequests()" class="btn btn-ghost btn-sm" style="justify-content:flex-start;gap:8px;color:var(--danger)">
+              🗑️ حذف كل الطلبات
+            </button>
+          </div>
+        </div>
+
+        <!-- الشكاوى -->
+        <div class="card">
+          <div class="card-head"><h4>📣 الشكاوى والمقترحات</h4></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
+            <button onclick="backupComplaints()" class="btn btn-ghost btn-sm" style="justify-content:flex-start;gap:8px">
+              ⬇️ تحميل نسخة احتياطية
+            </button>
+            <label class="btn btn-ghost btn-sm" style="justify-content:flex-start;gap:8px;cursor:pointer">
+              ⬆️ استعادة من نسخة احتياطية
+              <input type="file" id="restore-complaints-file" accept=".json" style="display:none" onchange="restoreComplaints(event)">
+            </label>
+            <button onclick="deleteAllComplaints()" class="btn btn-ghost btn-sm" style="justify-content:flex-start;gap:8px;color:var(--danger)">
+              🗑️ حذف كل الشكاوى
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
   </div>
 
   <!-- ===== REPORTS PAGE ===== -->
@@ -7912,6 +7955,125 @@ async function urgentComplaint(id) {
 
 
 var _complaintsSidebarCollapsed = false;
+
+// ============================================================
+// إدارة البيانات — نسخ احتياطي واستعادة وحذف
+// ============================================================
+var FB_BASE_BACKUP = 'https://firestore.googleapis.com/v1/projects/petitions-wadi/databases/(default)/documents';
+
+// ── الطلبات ──────────────────────────────────────────────────────────────
+async function backupRequests() {
+  toast('info', 'جارٍ التحميل...', 'يتم جلب الطلبات');
+  try {
+    var res = await fetch(FB_BASE_BACKUP + '/requests');
+    var data = await res.json();
+    var docs = (data.documents || []).map(function(d) { return d.fields; });
+    var blob = new Blob([JSON.stringify({ collection: 'requests', date: new Date().toISOString(), count: docs.length, data: docs }, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'requests_backup_' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+    toast('success', 'تم التحميل', docs.length + ' طلب');
+  } catch(e) { toast('error', 'خطأ', 'تعذر التحميل'); }
+}
+
+async function restoreRequests(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  if (!confirm('سيتم استعادة الطلبات من النسخة الاحتياطية. هل تريد المتابعة؟')) return;
+  try {
+    var text = await file.text();
+    var backup = JSON.parse(text);
+    if (backup.collection !== 'requests') { toast('error', 'خطأ', 'الملف ليس نسخة طلبات'); return; }
+    toast('info', 'جارٍ الاستعادة...', backup.count + ' طلب');
+    var docs = backup.data || [];
+    for (var i = 0; i < docs.length; i++) {
+      var id = docs[i].id ? docs[i].id.stringValue : ('WJ-' + Date.now() + '-' + i);
+      await fetch(FB_BASE_BACKUP + '/requests/' + id, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: docs[i] })
+      });
+    }
+    toast('success', 'تمت الاستعادة', docs.length + ' طلب');
+    event.target.value = '';
+  } catch(e) { toast('error', 'خطأ', 'تعذرت الاستعادة'); }
+}
+
+async function deleteAllRequests() {
+  if (!confirm('⚠️ هل أنت متأكد من حذف كل الطلبات؟\nهذه العملية لا يمكن التراجع عنها.')) return;
+  if (!confirm('تأكيد أخير: سيتم حذف كل الطلبات نهائياً.')) return;
+  try {
+    var res = await fetch(FB_BASE_BACKUP + '/requests');
+    var data = await res.json();
+    var docs = data.documents || [];
+    toast('info', 'جارٍ الحذف...', docs.length + ' طلب');
+    for (var i = 0; i < docs.length; i++) {
+      var name = docs[i].name;
+      await fetch('https://firestore.googleapis.com/v1/' + name, { method: 'DELETE' });
+    }
+    toast('success', 'تم الحذف', 'تم حذف كل الطلبات');
+    buildRequestsList && buildRequestsList();
+  } catch(e) { toast('error', 'خطأ', 'تعذر الحذف'); }
+}
+
+// ── الشكاوى ──────────────────────────────────────────────────────────────
+async function backupComplaints() {
+  toast('info', 'جارٍ التحميل...', 'يتم جلب الشكاوى');
+  try {
+    var all = await loadComplaints();
+    var blob = new Blob([JSON.stringify({ collection: 'complaints', date: new Date().toISOString(), count: all.length, data: all }, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'complaints_backup_' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+    toast('success', 'تم التحميل', all.length + ' شكوى');
+  } catch(e) { toast('error', 'خطأ', 'تعذر التحميل'); }
+}
+
+async function restoreComplaints(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  if (!confirm('سيتم استعادة الشكاوى من النسخة الاحتياطية. هل تريد المتابعة؟')) return;
+  try {
+    var text = await file.text();
+    var backup = JSON.parse(text);
+    if (backup.collection !== 'complaints') { toast('error', 'خطأ', 'الملف ليس نسخة شكاوى'); return; }
+    toast('info', 'جارٍ الاستعادة...', backup.count + ' شكوى');
+    var docs = backup.data || [];
+    for (var i = 0; i < docs.length; i++) {
+      var id = docs[i].id || ('CMP-' + Date.now() + '-' + i);
+      var fields = {};
+      Object.keys(docs[i]).forEach(function(k) {
+        fields[k] = { stringValue: String(docs[i][k] || '') };
+      });
+      await fetch(FB_BASE_BACKUP + '/complaints/' + id, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: fields })
+      });
+    }
+    toast('success', 'تمت الاستعادة', docs.length + ' شكوى');
+    event.target.value = '';
+    buildComplaintsList && buildComplaintsList();
+  } catch(e) { toast('error', 'خطأ', 'تعذرت الاستعادة'); }
+}
+
+async function deleteAllComplaints() {
+  if (!confirm('⚠️ هل أنت متأكد من حذف كل الشكاوى؟\nهذه العملية لا يمكن التراجع عنها.')) return;
+  if (!confirm('تأكيد أخير: سيتم حذف كل الشكاوى نهائياً.')) return;
+  try {
+    var res = await fetch(FB_BASE_BACKUP + '/complaints');
+    var data = await res.json();
+    var docs = data.documents || [];
+    toast('info', 'جارٍ الحذف...', docs.length + ' شكوى');
+    for (var i = 0; i < docs.length; i++) {
+      var name = docs[i].name;
+      await fetch('https://firestore.googleapis.com/v1/' + name, { method: 'DELETE' });
+    }
+    toast('success', 'تم الحذف', 'تم حذف كل الشكاوى');
+    buildComplaintsList && buildComplaintsList();
+  } catch(e) { toast('error', 'خطأ', 'تعذر الحذف'); }
+}
+
 function toggleComplaintsSidebar() {
   var sidebar = document.getElementById('complaints-sidebar');
   var btn = document.getElementById('complaints-sidebar-toggle');
@@ -8752,6 +8914,125 @@ async function urgentComplaint(id) {
 
 
 var _complaintsSidebarCollapsed = false;
+
+// ============================================================
+// إدارة البيانات — نسخ احتياطي واستعادة وحذف
+// ============================================================
+var FB_BASE_BACKUP = 'https://firestore.googleapis.com/v1/projects/petitions-wadi/databases/(default)/documents';
+
+// ── الطلبات ──────────────────────────────────────────────────────────────
+async function backupRequests() {
+  toast('info', 'جارٍ التحميل...', 'يتم جلب الطلبات');
+  try {
+    var res = await fetch(FB_BASE_BACKUP + '/requests');
+    var data = await res.json();
+    var docs = (data.documents || []).map(function(d) { return d.fields; });
+    var blob = new Blob([JSON.stringify({ collection: 'requests', date: new Date().toISOString(), count: docs.length, data: docs }, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'requests_backup_' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+    toast('success', 'تم التحميل', docs.length + ' طلب');
+  } catch(e) { toast('error', 'خطأ', 'تعذر التحميل'); }
+}
+
+async function restoreRequests(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  if (!confirm('سيتم استعادة الطلبات من النسخة الاحتياطية. هل تريد المتابعة؟')) return;
+  try {
+    var text = await file.text();
+    var backup = JSON.parse(text);
+    if (backup.collection !== 'requests') { toast('error', 'خطأ', 'الملف ليس نسخة طلبات'); return; }
+    toast('info', 'جارٍ الاستعادة...', backup.count + ' طلب');
+    var docs = backup.data || [];
+    for (var i = 0; i < docs.length; i++) {
+      var id = docs[i].id ? docs[i].id.stringValue : ('WJ-' + Date.now() + '-' + i);
+      await fetch(FB_BASE_BACKUP + '/requests/' + id, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: docs[i] })
+      });
+    }
+    toast('success', 'تمت الاستعادة', docs.length + ' طلب');
+    event.target.value = '';
+  } catch(e) { toast('error', 'خطأ', 'تعذرت الاستعادة'); }
+}
+
+async function deleteAllRequests() {
+  if (!confirm('⚠️ هل أنت متأكد من حذف كل الطلبات؟\nهذه العملية لا يمكن التراجع عنها.')) return;
+  if (!confirm('تأكيد أخير: سيتم حذف كل الطلبات نهائياً.')) return;
+  try {
+    var res = await fetch(FB_BASE_BACKUP + '/requests');
+    var data = await res.json();
+    var docs = data.documents || [];
+    toast('info', 'جارٍ الحذف...', docs.length + ' طلب');
+    for (var i = 0; i < docs.length; i++) {
+      var name = docs[i].name;
+      await fetch('https://firestore.googleapis.com/v1/' + name, { method: 'DELETE' });
+    }
+    toast('success', 'تم الحذف', 'تم حذف كل الطلبات');
+    buildRequestsList && buildRequestsList();
+  } catch(e) { toast('error', 'خطأ', 'تعذر الحذف'); }
+}
+
+// ── الشكاوى ──────────────────────────────────────────────────────────────
+async function backupComplaints() {
+  toast('info', 'جارٍ التحميل...', 'يتم جلب الشكاوى');
+  try {
+    var all = await loadComplaints();
+    var blob = new Blob([JSON.stringify({ collection: 'complaints', date: new Date().toISOString(), count: all.length, data: all }, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'complaints_backup_' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+    toast('success', 'تم التحميل', all.length + ' شكوى');
+  } catch(e) { toast('error', 'خطأ', 'تعذر التحميل'); }
+}
+
+async function restoreComplaints(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  if (!confirm('سيتم استعادة الشكاوى من النسخة الاحتياطية. هل تريد المتابعة؟')) return;
+  try {
+    var text = await file.text();
+    var backup = JSON.parse(text);
+    if (backup.collection !== 'complaints') { toast('error', 'خطأ', 'الملف ليس نسخة شكاوى'); return; }
+    toast('info', 'جارٍ الاستعادة...', backup.count + ' شكوى');
+    var docs = backup.data || [];
+    for (var i = 0; i < docs.length; i++) {
+      var id = docs[i].id || ('CMP-' + Date.now() + '-' + i);
+      var fields = {};
+      Object.keys(docs[i]).forEach(function(k) {
+        fields[k] = { stringValue: String(docs[i][k] || '') };
+      });
+      await fetch(FB_BASE_BACKUP + '/complaints/' + id, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: fields })
+      });
+    }
+    toast('success', 'تمت الاستعادة', docs.length + ' شكوى');
+    event.target.value = '';
+    buildComplaintsList && buildComplaintsList();
+  } catch(e) { toast('error', 'خطأ', 'تعذرت الاستعادة'); }
+}
+
+async function deleteAllComplaints() {
+  if (!confirm('⚠️ هل أنت متأكد من حذف كل الشكاوى؟\nهذه العملية لا يمكن التراجع عنها.')) return;
+  if (!confirm('تأكيد أخير: سيتم حذف كل الشكاوى نهائياً.')) return;
+  try {
+    var res = await fetch(FB_BASE_BACKUP + '/complaints');
+    var data = await res.json();
+    var docs = data.documents || [];
+    toast('info', 'جارٍ الحذف...', docs.length + ' شكوى');
+    for (var i = 0; i < docs.length; i++) {
+      var name = docs[i].name;
+      await fetch('https://firestore.googleapis.com/v1/' + name, { method: 'DELETE' });
+    }
+    toast('success', 'تم الحذف', 'تم حذف كل الشكاوى');
+    buildComplaintsList && buildComplaintsList();
+  } catch(e) { toast('error', 'خطأ', 'تعذر الحذف'); }
+}
+
 function toggleComplaintsSidebar() {
   var sidebar = document.getElementById('complaints-sidebar');
   var btn = document.getElementById('complaints-sidebar-toggle');
