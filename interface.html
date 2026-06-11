@@ -7708,7 +7708,7 @@ async function openComplaint(id) {
       (c.assignedDept ? (
         '<div style="background:#FFF3CD;border:0.5px solid #ffc107;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#856404;display:flex;align-items:center;justify-content:space-between">' +
           '<span>📋 محالة إلى: <b>' + c.assignedDept + '</b></span>' +
-          (isAdmin ? '<button onclick="urgentComplaint(\'' + c.id + '\')" style="background:#e53e3e;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-family:Cairo,sans-serif;cursor:pointer;font-weight:700">⚡ استعجال</button>' : '') +
+          (isAdmin && c.status === 'assigned' ? '<button onclick="urgentComplaint(\'' + c.id + '\')" style="background:#e53e3e;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-family:Cairo,sans-serif;cursor:pointer;font-weight:700">⚡ استعجال</button>' : '') +
         '</div>'
       ) : '') +
 
@@ -7764,13 +7764,20 @@ async function openComplaint(id) {
 
       // أدوات المدير
       (canAssign && c.status === 'new' ? (
-        '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
-          '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">📋 إحالة الشكوى</div>' +
-          '<select id="assign-dept-select" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px">' +
-            '<option value="">اختر القسم أو الإدارة</option>' +
-            depts.map(function(dep) { return '<option value="' + dep + '">' + dep + '</option>'; }).join('') +
-          '</select>' +
-          '<button class="btn btn-primary btn-sm" onclick="assignComplaint(\'' + c.id + '\')" style="width:100%">إحالة الشكوى ✓</button>' +
+        '<div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+          '<div style="padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
+            '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">📋 إحالة الشكوى</div>' +
+            '<select id="assign-dept-select" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px">' +
+              '<option value="">اختر القسم أو الإدارة</option>' +
+              depts.map(function(dep) { return '<option value="' + dep + '">' + dep + '</option>'; }).join('') +
+            '</select>' +
+            '<button class="btn btn-primary btn-sm" onclick="assignComplaint(\'' + c.id + '\')" style="width:100%">إحالة ✓</button>' +
+          '</div>' +
+          '<div style="padding:14px;background:#fff8e1;border:0.5px solid #ffc107;border-radius:12px">' +
+            '<div style="font-size:12px;font-weight:700;color:#856404;margin-bottom:10px">⚡ قرار فوري</div>' +
+            '<textarea id="instant-decision-note" placeholder="اكتب القرار الفوري..." rows="3" style="width:100%;padding:8px;border:1px solid #ffc107;border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px;resize:vertical;box-sizing:border-box;background:white;font-size:12px"></textarea>' +
+            '<button onclick="instantDecision(\'' + c.id + '\')" style="width:100%;background:#f59e0b;color:white;border:none;border-radius:8px;padding:7px;font-size:12px;font-weight:700;font-family:Cairo,sans-serif;cursor:pointer">تنفيذ القرار ⚡</button>' +
+          '</div>' +
         '</div>'
       ) : '') +
 
@@ -7835,6 +7842,7 @@ async function checkLateComplaints() {
     var alreadyUrgent = lastStep && typeof lastStep === 'object' &&
       lastStep.note && lastStep.note.includes('استعجال تلقائي');
     if (!alreadyUrgent) {
+      playUrgentSound();
       await updateComplaintStatus(lc.id, lc.status, {
         stepNote: '⏰ استعجال تلقائي — مضى على الشكوى أكثر من 48 ساعة بدون تحديث'
       });
@@ -7863,9 +7871,29 @@ async function checkLateComplaints() {
 }
 
 
+// تنبيه صوتي
+function playUrgentSound() {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var times = [0, 0.3, 0.6];
+    times.forEach(function(t) {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.type = 'square';
+      gain.gain.setValueAtTime(0.8, ctx.currentTime + t);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + t + 0.25);
+      osc.start(ctx.currentTime + t);
+      osc.stop(ctx.currentTime + t + 0.25);
+    });
+  } catch(e) {}
+}
+
 // استعجال الشكوى (يدوي من المدير)
 async function urgentComplaint(id) {
   if (!confirm('هل تريد إرسال استعجال لهذه الشكوى؟')) return;
+  playUrgentSound();
   await updateComplaintStatus(id, 'assigned', {
     stepNote: '⚡ تم الاستعجال من قِبل المدير — يرجى البت في الشكوى فوراً'
   });
@@ -7898,6 +7926,30 @@ function toggleComplaintsSidebar() {
     btn.style.right = 'calc(300px - 14px)';
     btn.textContent = '◀';
   }
+}
+
+
+// قرار فوري بدون إحالة
+async function instantDecision(id) {
+  var note = (document.getElementById('instant-decision-note').value || '').trim();
+  if (!note) { toast('warn','تنبيه','اكتب القرار الفوري أولاً'); return; }
+
+  await updateComplaintStatus(id, 'closed', {
+    stepNote: '⚡ قرار فوري: ' + note
+  });
+  toast('success', 'تم تنفيذ القرار', 'تم إغلاق الشكوى بقرار فوري');
+
+  var all = await loadComplaints();
+  var c = all.find(function(x) { return x.id === id; });
+  if (c && c.telegramChatId) {
+    sendTelegramMsg(c.telegramChatId,
+      '⚡ قرار فوري على شكواك\n\n' +
+      'رقم الشكوى: ' + id + '\n' +
+      'القرار: ' + note + '\n\n' +
+      'شكراً لتواصلك مع المركز التكنولوجي.'
+    );
+  }
+  openComplaint(id);
 }
 
 // إعادة إحالة الشكوى
@@ -8496,7 +8548,7 @@ async function openComplaint(id) {
       (c.assignedDept ? (
         '<div style="background:#FFF3CD;border:0.5px solid #ffc107;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#856404;display:flex;align-items:center;justify-content:space-between">' +
           '<span>📋 محالة إلى: <b>' + c.assignedDept + '</b></span>' +
-          (isAdmin ? '<button onclick="urgentComplaint(\'' + c.id + '\')" style="background:#e53e3e;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-family:Cairo,sans-serif;cursor:pointer;font-weight:700">⚡ استعجال</button>' : '') +
+          (isAdmin && c.status === 'assigned' ? '<button onclick="urgentComplaint(\'' + c.id + '\')" style="background:#e53e3e;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-family:Cairo,sans-serif;cursor:pointer;font-weight:700">⚡ استعجال</button>' : '') +
         '</div>'
       ) : '') +
 
@@ -8552,13 +8604,20 @@ async function openComplaint(id) {
 
       // أدوات المدير
       (canAssign && c.status === 'new' ? (
-        '<div style="margin-top:20px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
-          '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">📋 إحالة الشكوى</div>' +
-          '<select id="assign-dept-select" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px">' +
-            '<option value="">اختر القسم أو الإدارة</option>' +
-            depts.map(function(dep) { return '<option value="' + dep + '">' + dep + '</option>'; }).join('') +
-          '</select>' +
-          '<button class="btn btn-primary btn-sm" onclick="assignComplaint(\'' + c.id + '\')" style="width:100%">إحالة الشكوى ✓</button>' +
+        '<div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+          '<div style="padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">' +
+            '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">📋 إحالة الشكوى</div>' +
+            '<select id="assign-dept-select" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px">' +
+              '<option value="">اختر القسم أو الإدارة</option>' +
+              depts.map(function(dep) { return '<option value="' + dep + '">' + dep + '</option>'; }).join('') +
+            '</select>' +
+            '<button class="btn btn-primary btn-sm" onclick="assignComplaint(\'' + c.id + '\')" style="width:100%">إحالة ✓</button>' +
+          '</div>' +
+          '<div style="padding:14px;background:#fff8e1;border:0.5px solid #ffc107;border-radius:12px">' +
+            '<div style="font-size:12px;font-weight:700;color:#856404;margin-bottom:10px">⚡ قرار فوري</div>' +
+            '<textarea id="instant-decision-note" placeholder="اكتب القرار الفوري..." rows="3" style="width:100%;padding:8px;border:1px solid #ffc107;border-radius:8px;font-family:Cairo,sans-serif;margin-bottom:8px;resize:vertical;box-sizing:border-box;background:white;font-size:12px"></textarea>' +
+            '<button onclick="instantDecision(\'' + c.id + '\')" style="width:100%;background:#f59e0b;color:white;border:none;border-radius:8px;padding:7px;font-size:12px;font-weight:700;font-family:Cairo,sans-serif;cursor:pointer">تنفيذ القرار ⚡</button>' +
+          '</div>' +
         '</div>'
       ) : '') +
 
@@ -8623,6 +8682,7 @@ async function checkLateComplaints() {
     var alreadyUrgent = lastStep && typeof lastStep === 'object' &&
       lastStep.note && lastStep.note.includes('استعجال تلقائي');
     if (!alreadyUrgent) {
+      playUrgentSound();
       await updateComplaintStatus(lc.id, lc.status, {
         stepNote: '⏰ استعجال تلقائي — مضى على الشكوى أكثر من 48 ساعة بدون تحديث'
       });
@@ -8651,9 +8711,29 @@ async function checkLateComplaints() {
 }
 
 
+// تنبيه صوتي
+function playUrgentSound() {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var times = [0, 0.3, 0.6];
+    times.forEach(function(t) {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.type = 'square';
+      gain.gain.setValueAtTime(0.8, ctx.currentTime + t);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + t + 0.25);
+      osc.start(ctx.currentTime + t);
+      osc.stop(ctx.currentTime + t + 0.25);
+    });
+  } catch(e) {}
+}
+
 // استعجال الشكوى (يدوي من المدير)
 async function urgentComplaint(id) {
   if (!confirm('هل تريد إرسال استعجال لهذه الشكوى؟')) return;
+  playUrgentSound();
   await updateComplaintStatus(id, 'assigned', {
     stepNote: '⚡ تم الاستعجال من قِبل المدير — يرجى البت في الشكوى فوراً'
   });
@@ -8686,6 +8766,30 @@ function toggleComplaintsSidebar() {
     btn.style.right = 'calc(300px - 14px)';
     btn.textContent = '◀';
   }
+}
+
+
+// قرار فوري بدون إحالة
+async function instantDecision(id) {
+  var note = (document.getElementById('instant-decision-note').value || '').trim();
+  if (!note) { toast('warn','تنبيه','اكتب القرار الفوري أولاً'); return; }
+
+  await updateComplaintStatus(id, 'closed', {
+    stepNote: '⚡ قرار فوري: ' + note
+  });
+  toast('success', 'تم تنفيذ القرار', 'تم إغلاق الشكوى بقرار فوري');
+
+  var all = await loadComplaints();
+  var c = all.find(function(x) { return x.id === id; });
+  if (c && c.telegramChatId) {
+    sendTelegramMsg(c.telegramChatId,
+      '⚡ قرار فوري على شكواك\n\n' +
+      'رقم الشكوى: ' + id + '\n' +
+      'القرار: ' + note + '\n\n' +
+      'شكراً لتواصلك مع المركز التكنولوجي.'
+    );
+  }
+  openComplaint(id);
 }
 
 // إعادة إحالة الشكوى
