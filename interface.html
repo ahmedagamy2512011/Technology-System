@@ -7759,21 +7759,34 @@ async function openComplaint(id) {
       '<div class="complaint-steps">' + stepsHTML + '</div>' +
 
       // المستندات المرفقة مع الشكوى
-      (c.docs && c.docs.length ? (
-        '<div style="margin-top:16px;padding:12px;background:var(--surface);border:0.5px solid var(--border);border-radius:10px">' +
-          '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">📎 المستندات المرفقة</div>' +
-          c.docs.map(function(doc) {
-            var docName = typeof doc === 'object' ? (doc.name || '—') : doc;
-            var docUrl  = typeof doc === 'object' ? (doc.url || '') : '';
-            return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border3)">' +
-              '<span style="font-size:14px">📄</span>' +
-              '<span style="font-size:12px;color:var(--text);flex:1">' + docName + '</span>' +
-              (docUrl ? '<a href="' + docUrl + '" target="_blank" download style="background:var(--primary);color:white;border-radius:6px;padding:3px 8px;font-size:10px;text-decoration:none;margin-left:4px">⬇ تحميل</a>' : '') +
-              (docUrl ? '<a href="' + docUrl + '" target="_blank" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:10px;text-decoration:none">👁 عرض</a>' : '') +
-            '</div>';
-          }).join('') +
-        '</div>'
-      ) : '') +
+      (c.docs && c.docs.length ? (function() {
+        var originalDocs = c.docs.filter(function(d) { return !d.label || d.label !== 'مستند مضاف لاحقاً'; });
+        var extraDocs    = c.docs.filter(function(d) { return d.label === 'مستند مضاف لاحقاً'; });
+        function renderDocRow(doc) {
+          var docName = typeof doc === 'object' ? (doc.name || '—') : doc;
+          var docUrl  = typeof doc === 'object' ? (doc.url  || '') : '';
+          return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border3)">' +
+            '<span style="font-size:14px">📄</span>' +
+            '<span style="font-size:12px;color:var(--text);flex:1">' + docName + '</span>' +
+            (docUrl ? '<a href="' + docUrl + '" target="_blank" download style="background:var(--primary);color:white;border-radius:6px;padding:3px 8px;font-size:10px;text-decoration:none;margin-left:4px">⬇ تحميل</a>' : '') +
+            (docUrl ? '<a href="' + docUrl + '" target="_blank" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:10px;text-decoration:none">👁 عرض</a>' : '') +
+          '</div>';
+        }
+        var html = '';
+        if (originalDocs.length) {
+          html += '<div style="margin-top:16px;padding:12px;background:var(--surface);border:0.5px solid var(--border);border-radius:10px">' +
+            '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">📎 المستندات المرفقة</div>' +
+            originalDocs.map(renderDocRow).join('') +
+          '</div>';
+        }
+        if (extraDocs.length) {
+          html += '<div style="margin-top:10px;padding:12px;background:#f0f7ff;border:0.5px solid #bfdbfe;border-radius:10px">' +
+            '<div style="font-size:12px;font-weight:700;color:#1e40af;margin-bottom:8px">📎 مستندات مضافة لاحقاً</div>' +
+            extraDocs.map(renderDocRow).join('') +
+          '</div>';
+        }
+        return html;
+      })() : '') +
 
       // مستندات سجل الأحداث (من المعالجة والقرار)
       (function() {
@@ -8718,21 +8731,34 @@ async function openComplaint(id) {
       '<div class="complaint-steps">' + stepsHTML + '</div>' +
 
       // المستندات المرفقة مع الشكوى
-      (c.docs && c.docs.length ? (
-        '<div style="margin-top:16px;padding:12px;background:var(--surface);border:0.5px solid var(--border);border-radius:10px">' +
-          '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">📎 المستندات المرفقة</div>' +
-          c.docs.map(function(doc) {
-            var docName = typeof doc === 'object' ? (doc.name || '—') : doc;
-            var docUrl  = typeof doc === 'object' ? (doc.url || '') : '';
-            return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border3)">' +
-              '<span style="font-size:14px">📄</span>' +
-              '<span style="font-size:12px;color:var(--text);flex:1">' + docName + '</span>' +
-              (docUrl ? '<a href="' + docUrl + '" target="_blank" download style="background:var(--primary);color:white;border-radius:6px;padding:3px 8px;font-size:10px;text-decoration:none;margin-left:4px">⬇ تحميل</a>' : '') +
-              (docUrl ? '<a href="' + docUrl + '" target="_blank" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:10px;text-decoration:none">👁 عرض</a>' : '') +
-            '</div>';
-          }).join('') +
-        '</div>'
-      ) : '') +
+      (c.docs && c.docs.length ? (function() {
+        var originalDocs = c.docs.filter(function(d) { return !d.label || d.label !== 'مستند مضاف لاحقاً'; });
+        var extraDocs    = c.docs.filter(function(d) { return d.label === 'مستند مضاف لاحقاً'; });
+        function renderDocRow(doc) {
+          var docName = typeof doc === 'object' ? (doc.name || '—') : doc;
+          var docUrl  = typeof doc === 'object' ? (doc.url  || '') : '';
+          return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border3)">' +
+            '<span style="font-size:14px">📄</span>' +
+            '<span style="font-size:12px;color:var(--text);flex:1">' + docName + '</span>' +
+            (docUrl ? '<a href="' + docUrl + '" target="_blank" download style="background:var(--primary);color:white;border-radius:6px;padding:3px 8px;font-size:10px;text-decoration:none;margin-left:4px">⬇ تحميل</a>' : '') +
+            (docUrl ? '<a href="' + docUrl + '" target="_blank" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:10px;text-decoration:none">👁 عرض</a>' : '') +
+          '</div>';
+        }
+        var html = '';
+        if (originalDocs.length) {
+          html += '<div style="margin-top:16px;padding:12px;background:var(--surface);border:0.5px solid var(--border);border-radius:10px">' +
+            '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">📎 المستندات المرفقة</div>' +
+            originalDocs.map(renderDocRow).join('') +
+          '</div>';
+        }
+        if (extraDocs.length) {
+          html += '<div style="margin-top:10px;padding:12px;background:#f0f7ff;border:0.5px solid #bfdbfe;border-radius:10px">' +
+            '<div style="font-size:12px;font-weight:700;color:#1e40af;margin-bottom:8px">📎 مستندات مضافة لاحقاً</div>' +
+            extraDocs.map(renderDocRow).join('') +
+          '</div>';
+        }
+        return html;
+      })() : '') +
 
       // مستندات سجل الأحداث (من المعالجة والقرار)
       (function() {
